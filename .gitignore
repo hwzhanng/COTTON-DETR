@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Local data, weights, and generated artifacts
+/data/*
+!/data/README.md
+/weights/*
+!/weights/pretrained/
+/weights/pretrained/*
+!/weights/pretrained/README.md
+/outputs/**
+/runs/**
+/logs/**
+/wandb/**
+/tensorboard/**
+
+# Model and result artifacts
+*.pth
+*.pt
+*.onnx
+*.engine
+*.safetensors
+*.log
+*.jsonl
+*.csv
+*.tar
+*.tar.gz
+*.zip
+
+# Local machine files
+*.ps1.local
+*.sh.local
+.env
+.env.*

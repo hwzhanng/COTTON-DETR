@@ -1,0 +1,65 @@
+project:
+  name: crop_detr_semantic_sidecar
+  root: .
+  seed: 0
+
+dataset:
+  semantic_labels: data/semantic/semantic_labels_train.jsonl
+  split: null
+  train_ratio: 0.8
+  roi_expand: 0.15
+
+model:
+  feature_backend: dinov3_hf
+  feature_model_path: weights/pretrained/dinov3_vits16
+  feature_cache: outputs/semantic/features/dinov3_vits16_train.pt
+  image_size: 224
+  hidden_dim: 384
+  embed_dim: 256
+  dropout: 0.10
+  head_type: flat
+
+training:
+  epochs: 40
+  batch_size: 64
+  lr: 0.001
+  weight_decay: 0.0001
+  device: auto
+  balanced_sampling: true
+  loss_weights:
+    opening_state_ce: 1.0
+    opening_percentage_smooth_l1: 1.0
+    damage_present_bce: 1.0
+    damage_type_ce: 1.0
+    damage_severity_ce: 0.7
+
+taxonomy:
+  category_semantics:
+    0:
+      name: defected
+      opening_state: closed
+      opening_percentage: 5
+      damage_present: true
+      damage_type: malformed_or_other
+      damage_severity: moderate
+    1:
+      name: flower
+      opening_state: flower
+      opening_percentage: 0
+      damage_present: false
+    2:
+      name: fully_opened
+      opening_state: full
+      opening_percentage: 85
+      damage_present: false
+    3:
+      name: partially_opened
+      opening_state: partial
+      opening_percentage: 40
+      damage_present: false
+
+outputs:
+  checkpoints: outputs/semantic/checkpoints
+  metrics: outputs/semantic/metrics
+  exports: outputs/semantic/exports
+  default_checkpoint: outputs/semantic/checkpoints/semantic_head_best.pt

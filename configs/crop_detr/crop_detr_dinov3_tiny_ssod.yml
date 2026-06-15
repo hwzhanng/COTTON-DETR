@@ -1,0 +1,427 @@
+# CROP-DETR SSOD template.
+# Replace dataset paths, num_classes, verifier thresholds, and class weights for your dataset.
+task: ssod_detection
+model: DEIM
+criterion: DEIMCriterion
+postprocessor: PostProcessor
+use_amp: true
+use_ema: false
+sync_bn: false
+find_unused_parameters: false
+print_freq: 20
+output_dir: ./outputs/crop_detr_ssod
+epoches: 200
+clip_max_norm: 0.1
+num_classes: 4
+remap_mscoco_category: false
+eval_spatial_size:
+- 640
+- 640
+use_focal_loss: true
+scaler:
+  type: GradScaler
+  enabled: true
+evaluator:
+  type: CocoEvaluator
+  iou_types:
+  - bbox
+DEIM:
+  backbone: DINOv3STAs
+  encoder: HybridEncoder
+  decoder: DEIMTransformer
+DINOv3STAs:
+  name: vit_tiny
+  embed_dim: 192
+  weights_path: ./weights/pretrained/vitt_distill.pt
+  interaction_indexes:
+  - 3
+  - 7
+  - 11
+  num_heads: 3
+  finetune: true
+HybridEncoder:
+  in_channels:
+  - 192
+  - 192
+  - 192
+  feat_strides:
+  - 8
+  - 16
+  - 32
+  depth_mult: 0.67
+  expansion: 0.34
+  hidden_dim: 192
+  dim_feedforward: 512
+  use_encoder_idx:
+  - 2
+  num_encoder_layers: 1
+  nhead: 8
+  dropout: 0.0
+  enc_act: gelu
+  act: silu
+  version: deim
+  csp_type: csp2
+  fuse_op: sum
+DEIMTransformer:
+  feat_channels:
+  - 192
+  - 192
+  - 192
+  feat_strides:
+  - 8
+  - 16
+  - 32
+  hidden_dim: 192
+  dim_feedforward: 512
+  num_levels: 3
+  num_layers: 4
+  eval_idx: -1
+  num_queries: 300
+  num_denoising: 100
+  label_noise_ratio: 0.5
+  box_noise_scale: 1.0
+  reg_max: 32
+  reg_scale: 4
+  layer_scale: 1
+  num_points:
+  - 3
+  - 6
+  - 3
+  cross_attn_method: default
+  query_select_method: default
+  activation: silu
+  mlp_act: silu
+PostProcessor:
+  num_top_queries: 300
+DEIMCriterion:
+  weight_dict:
+    loss_mal: 1
+    loss_bbox: 5
+    loss_giou: 2
+    loss_fgl: 0.15
+    loss_ddf: 1.5
+  losses:
+  - mal
+  - boxes
+  - local
+  alpha: 0.75
+  gamma: 1.5
+  reg_max: 32
+  soft_bg_ignore_iou: 0.5
+  soft_bg_weight: 0.0
+  matcher:
+    type: HungarianMatcher
+    weight_dict:
+      cost_class: 2
+      cost_bbox: 5
+      cost_giou: 2
+    alpha: 0.25
+    gamma: 2.0
+    change_matcher: true
+    iou_order_alpha: 4.0
+    matcher_change_epoch: 95
+optimizer:
+  type: AdamW
+  params:
+  - params: ^(?=.*.dinov3)(?!.*(?:norm|bn|bias)).*$
+    lr: 1.25e-05
+  - params: ^(?=.*.dinov3)(?=.*(?:norm|bn|bias)).*$
+    lr: 1.25e-05
+    weight_decay: 0.0
+  - params: ^(?=.*(?:sta|encoder|decoder))(?=.*(?:norm|bn|bias)).*$
+    weight_decay: 0.0
+  lr: 0.00025
+  betas:
+  - 0.9
+  - 0.999
+  weight_decay: 0.0001
+lrsheduler: flatcosine
+lr_gamma: 0.5
+warmup_iter: 1333
+flat_epoch: 98
+no_aug_epoch: 14
+ssod:
+  enabled: true
+  teacher_ema_decay: 0.9996
+  teacher_ema_restart_decay: 0.9999
+  teacher_ema_warmup_decay: 0.99
+  teacher_ema_warmup_epochs: 5
+  teacher_ema_burnin_decay: 0.99
+  teacher_ema_warmup_curve: cosine
+  pseudo_threshold: 0.2
+  pseudo_threshold_final: 0.2
+  pseudo_threshold_warmup_start_epoch: 40
+  pseudo_threshold_warmup_epochs: 0
+  burn_in_epochs: 40
+  unsupervised_stop_epoch: 186
+  unsupervised_ramp_epochs: 35
+  unsupervised_start_metric: coco_bbox_mAP
+  unsupervised_start_min_metric: 0.55
+  schedule_from_actual_unsup_start: true
+  best_metric: coco_bbox_mAP
+  early_stop_patience: 20
+  min_epochs: 135
+  checkpoint_period: 50
+  eval_period: 5
+  adaptive_threshold:
+    enabled: false
+  losses:
+    supervised: 1.0
+    unsupervised: 0.85
+    synthetic: 0.0
+    consistency: 0.0
+    distill: 0.0
+  distill:
+    enabled: false
+  verifier:
+    enabled: true
+    weights_dir: ./weights/pretrained/dinov3_vits16
+    head_path: ./weights/pretrained/verifier_head.pt
+    head4_path: ./weights/pretrained/verifier_head_4cls.pt
+    mode: filter
+    objectness_thr: 0.5
+    expand: 0.15
+    classes: null
+    reassign_label: true
+    accept_threshold:
+      0: 0.5
+      1: 0.5
+      2: 0.5
+      3: 0.5
+    class_loss_scale:
+      0: 1.0
+      1: 1.0
+      2: 1.0
+      3: 1.0
+  soft_background:
+    enabled: true
+    score_lo: 0.1
+    max_regions: 100
+  mining:
+    min_pseudo_labels: 0
+    max_pseudo_labels: 40
+    max_per_class_labels: 0
+    high_threshold_mode: fixed
+    high_score_floor: 0.2
+    threshold_mode: fixed
+    candidate_score_floor: 0.2
+    candidate_threshold_scale: 1.0
+    max_mined_labels: 0
+    max_mined_per_class_labels: 0
+    mined_score_floor: 0.2
+    mined_weight: 0.0
+    use_mined_as_pseudo_loss: false
+    min_candidate_labels: 0
+    max_candidate_labels: 40
+    min_query_labels: 0
+    max_query_labels: 80
+    min_teacher_score_for_mining: 0.0
+    gmm_enabled: false
+    cost_quantile: 0.25
+    pseudo_score_power: 0.5
+    pseudo_weight_floor: 0.1
+    pseudo_weight_ceiling: 1.0
+  pseudo_dn:
+    enabled: true
+    label_noise_ratio: 0.3
+    box_noise_scale: 0.5
+    min_score: 0.0
+  consistency:
+    score_threshold: 0.005
+    max_pairs: 64
+    normalize_features: true
+    loss_scale: 6.0
+    pool_size: 7
+    min_score: 0.05
+    warmup_epochs: 2
+  augmentation:
+    normalized: true
+    strong_hflip_prob: 0.5
+    strong_crop_prob: 0.25
+    strong_crop_scale:
+    - 0.75
+    - 1.0
+    strong_zoomout_prob: 0.15
+    strong_zoomout_scale:
+    - 0.7
+    - 1.0
+    photometric_prob: 0.8
+    grayscale_prob: 0.2
+    blur_prob: 0.3
+    min_box_size: 0.0015625
+    mixup_prob: 0.0
+    mixup_alpha: 0.5
+    mic_prob: 0.3
+    mic_patch_size: 32
+    mic_mask_ratio: 0.5
+    mic_fill_value:
+    - 0.0
+    - 0.0
+    - 0.0
+labeled_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: ./data/labeled/images
+    ann_file: ./data/annotations/labeled_train.json
+    return_masks: false
+    transforms:
+      type: Compose
+      ops:
+      - type: Mosaic
+        output_size: 320
+        rotation_range: 10
+        translation_range:
+        - 0.1
+        - 0.1
+        scaling_range:
+        - 0.5
+        - 1.5
+        probability: 1.0
+        fill_value: 0
+        use_cache: true
+        max_cached_images: 50
+        random_pop: true
+      - type: RandomPhotometricDistort
+        p: 0.5
+      - type: RandomZoomOut
+        fill: 0
+      - type: RandomIoUCrop
+        p: 0.8
+      - type: SanitizeBoundingBoxes
+        min_size: 1
+      - type: RandomHorizontalFlip
+      - type: Resize
+        size:
+        - 640
+        - 640
+      - type: SanitizeBoundingBoxes
+        min_size: 1
+      - type: ConvertPILImage
+        dtype: float32
+        scale: true
+      - type: Normalize
+        mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+      - type: ConvertBoxes
+        fmt: cxcywh
+        normalize: true
+      policy:
+        name: stop_epoch
+        epoch:
+        - 4
+        - 98
+        - 186
+        ops:
+        - Mosaic
+        - RandomPhotometricDistort
+        - RandomZoomOut
+        - RandomIoUCrop
+      mosaic_prob: 0.5
+  shuffle: true
+  batch_size: 10
+  class_balanced_sampling:
+    target_class_ids:
+    - 0
+    min_positive_images_per_batch: 1
+    min_positive_fraction: 0.25
+  num_workers: 2
+  drop_last: true
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: 640
+    base_size_repeat: 20
+    mixup_prob: 0.5
+    mixup_epochs:
+    - 4
+    - 98
+    stop_epoch: 186
+    copyblend_prob: 0.5
+    copyblend_epochs:
+    - 4
+    - 186
+    copyblend_type: blend
+    area_threshold: 100
+    num_objects: 3
+    with_expand: true
+    expand_ratios:
+    - 0.1
+    - 0.25
+    ema_restart_decay: 0.9999
+unlabeled_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: ./data/unlabeled/images
+    ann_file: ./data/annotations/unlabeled_train.json
+    return_masks: false
+    transforms:
+      type: Compose
+      ops:
+      - type: Resize
+        size:
+        - 640
+        - 640
+      - type: ConvertPILImage
+        dtype: float32
+        scale: true
+      - type: Normalize
+        mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+      - type: ConvertBoxes
+        fmt: cxcywh
+        normalize: true
+  shuffle: true
+  batch_size: 10
+  num_workers: 2
+  drop_last: true
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: 640
+    base_size_repeat: 20
+    stop_epoch: 186
+val_dataloader:
+  type: DataLoader
+  dataset:
+    type: CocoDetection
+    img_folder: ./data/val/images
+    ann_file: ./data/annotations/val.json
+    return_masks: false
+    transforms:
+      type: Compose
+      ops:
+      - type: Resize
+        size:
+        - 640
+        - 640
+      - type: ConvertPILImage
+        dtype: float32
+        scale: true
+      - type: Normalize
+        mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+  shuffle: false
+  batch_size: 8
+  num_workers: 1
+  drop_last: false
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: 640

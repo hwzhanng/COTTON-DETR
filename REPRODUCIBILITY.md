@@ -1,0 +1,178 @@
+# Reproducibility
+
+This repository is a code-only release. It provides the training recipe,
+configuration, and checks needed to reproduce a CROP-DETR run, but it does not
+include private datasets, pretrained weights, verifier heads, checkpoints, logs,
+or paper result archives.
+
+## Reference Code Version
+
+The default public configuration is:
+
+```text
+configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml
+```
+
+It corresponds to the v5 SSOD stack used for release preparation: DINOv3STAs
+ViT-Tiny backbone, teacher-student SSOD, DINOv3 verifier gating, multi-class
+verifier reassignment, and soft-background ignore. The v6 DINOv3-S experiment is
+not the default public template.
+
+## Environment
+
+Use Linux with an NVIDIA GPU for training. The guarded launcher expects common
+Linux tools such as `bash`, `ps`, `awk`, `find`, and `/dev/shm`.
+
+Recommended baseline:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+
+# Install the PyTorch wheel that matches your CUDA driver first.
+# Example only:
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+
+pip install -r requirements-repro.txt
+```
+
+For local development or dependency resolution, `requirements.txt` keeps looser
+minimums. For a paper-style rerun, prefer `requirements-repro.txt` and record
+the final `pip freeze`.
+
+## Data Layout
+
+The public template expects COCO-style data under:
+
+```text
+data/
+  labeled/images/
+  unlabeled/images/
+  val/images/
+  annotations/
+    labeled_train.json
+    unlabeled_train.json
+    val.json
+```
+
+Unlabeled COCO records may omit bounding boxes. Keep category ids consistent
+across labeled, unlabeled, and validation annotation files, then update
+`num_classes`, verifier thresholds, and class weights in the config.
+
+## Required Weights
+
+Place externally obtained weights at:
+
+```text
+weights/pretrained/deimv2_dinov3_s_coco_tuning.pth
+weights/pretrained/vitt_distill.pt
+weights/pretrained/dinov3_vits16/config.json
+weights/pretrained/dinov3_vits16/model.safetensors
+weights/pretrained/verifier_head.pt
+weights/pretrained/verifier_head_4cls.pt
+```
+
+The DINOv3 files must be obtained under the DINOv3 License. This repository does
+not redistribute DINOv3 weights or verifier heads.
+
+## Preflight Check
+
+Run the lightweight checker before training. It does not import Torch.
+
+```bash
+python scripts/check_repro_package.py \
+  --config configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml
+```
+
+Use `--allow-missing` when preparing a package before data or weights have been
+placed locally.
+
+## Training
+
+Single-seed run:
+
+```bash
+bash train_guarded.sh \
+  -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+  -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
+  -d cuda \
+  --seed 0 \
+  --use-amp
+```
+
+Three-seed rerun:
+
+```bash
+for seed in 0 1 2; do
+  bash train_guarded.sh \
+    -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+    -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
+    -d cuda \
+    --seed "${seed}" \
+    --output-dir "outputs/crop_detr_ssod_seed${seed}" \
+    --use-amp
+done
+```
+
+The `--seed` argument seeds Python, NumPy, and Torch through the training
+launcher. Exact bitwise reproducibility is not guaranteed across CUDA, cuDNN,
+driver, distributed, and dataloader implementations, so report mean and standard
+deviation for multi-seed claims.
+
+## Evaluation
+
+Evaluate the teacher EMA checkpoint:
+
+```bash
+python tools/evaluate_ssod_teacher.py \
+  -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+  --checkpoint outputs/crop_detr_ssod_seed0/best_teacher_ema.pth \
+  --output-dir outputs/crop_detr_ssod_seed0/eval \
+  -d cuda
+```
+
+## Semantic Sidecar
+
+The semantic sidecar is optional and uses ROI-level semantic labels supplied by
+the user. This repository includes the training/export code and open prompt
+templates, but does not include ROI crops, semantic labels, LLM responses,
+feature caches, or semantic checkpoints.
+
+Minimum inputs:
+
+- `data/semantic/semantic_labels_train.jsonl`, with one row per ROI crop.
+- ROI crop files referenced by each row's `crop_path`.
+- DINOv3 feature model files under `weights/pretrained/dinov3_vits16/`.
+
+Train the sidecar:
+
+```bash
+python tools/semantic/train_semantic_head.py \
+  --config configs/crop_detr/semantic_sidecar_template.yaml
+```
+
+Attach semantic attributes to detections:
+
+```bash
+python tools/semantic/export_semantics.py \
+  --config configs/crop_detr/semantic_sidecar_template.yaml \
+  --detections outputs/crop_detr_ssod/test_detections.json \
+  --coco-images data/annotations/test.json \
+  --image-dir data/test/images \
+  --output outputs/crop_detr_ssod/test_detections_with_semantics.json
+```
+
+## Reporting Checklist
+
+For each reported run, archive:
+
+- Git commit hash or release tag.
+- Full config copy after command-line overrides.
+- Seed value.
+- Hardware model, GPU count, CUDA driver, PyTorch, torchvision, transformers,
+  and faster-coco-eval versions.
+- Checkpoint filename and SHA256 hash.
+- Evaluation JSON and threshold sweep CSV, if produced.
+- Training log and TensorBoard directory.
+
+Do not commit these artifacts to the public repository.

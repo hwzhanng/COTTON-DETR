@@ -1,0 +1,16 @@
+# Reproduction baseline. Install CUDA-specific torch wheels first if needed.
+torch==2.5.1
+torchvision==0.20.1
+faster-coco-eval==1.6.5
+PyYAML==6.0.2
+tensorboard==2.18.0
+scipy==1.14.1
+calflops==0.3.2
+transformers==4.56.2
+huggingface-hub==0.36.0
+safetensors==0.4.5
+numpy==2.1.3
+pillow==11.0.0
+tqdm==4.67.1
+matplotlib==3.9.2
+opencv-python-headless==4.10.0.84
