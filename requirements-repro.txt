@@ -5,6 +5,7 @@ faster-coco-eval==1.6.5
 PyYAML==6.0.2
 tensorboard==2.18.0
 scipy==1.14.1
+scikit-learn==1.5.2
 calflops==0.3.2
 transformers==4.56.2
 huggingface-hub==0.36.0

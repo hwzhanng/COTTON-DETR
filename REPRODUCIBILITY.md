@@ -87,6 +87,70 @@ python scripts/check_repro_package.py \
 Use `--allow-missing` when preparing a package before data or weights have been
 placed locally.
 
+## Cold-Start Selection
+
+The paper pipeline starts before detector training. The selector uses frozen
+DINOv3 image features and does not require detector scores.
+
+Minimum inputs:
+
+- Candidate training images under `data/candidate/images`.
+- A candidate COCO image list, for example `data/annotations/candidate_train.json`.
+- Validation/test COCO files passed through `--exclude-coco` to prevent leakage.
+- A local DINOv3 model directory under `weights/pretrained/dinov3_vits16/`.
+- For `cluster_tail`, labels for the already selected coverage head. In a live
+  annotation workflow this is `data/annotations/coverage_head_labeled.json`.
+
+Feature extraction:
+
+```bash
+python tools/selection/extract_dinov3_features.py \
+  --image-dir data/candidate/images \
+  --model-dir weights/pretrained/dinov3_vits16 \
+  --output-dir outputs/selection/features
+```
+
+Select the coverage head before annotation:
+
+```bash
+python tools/selection/select_cold_start.py \
+  --method cluster_head \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --budget 500 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10 \
+  --output-dir outputs/selection/coverage_head
+```
+
+After labeling those images, run the paper-facing 608-image selector:
+
+```bash
+python tools/selection/select_cold_start.py \
+  --method cluster_tail \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --output-coco-from data/annotations/train_pool_with_boxes.json \
+  --seed-coco data/annotations/coverage_head_labeled.json \
+  --budget 608 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10 \
+  --target-class-id 0 \
+  --target-box-count 90 \
+  --output-dir outputs/selection/cold_start
+```
+
+The generated CSV, selected COCO file, and manifest are run artifacts. They are
+ignored by Git and should not be committed.
+
 ## Training
 
 Single-seed run:

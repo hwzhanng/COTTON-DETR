@@ -28,6 +28,65 @@ instructions, and web-optimized paper figures. It intentionally does **not**
 include datasets, pretrained weights, verifier heads, checkpoints, training
 logs, private paper drafts, or raw experiment archives.
 
+## Pipeline Walkthrough
+
+The repository follows the paper pipeline in execution order.
+
+**1. Select images before training a detector.** Extract frozen DINOv3 features
+for the candidate training pool, select a 500-image coverage head for
+annotation, then expand from the labeled rare-class seed clusters to 608 images.
+
+```bash
+python tools/selection/extract_dinov3_features.py \
+  --image-dir data/candidate/images \
+  --model-dir weights/pretrained/dinov3_vits16 \
+  --output-dir outputs/selection/features
+
+python tools/selection/select_cold_start.py \
+  --method cluster_head \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --budget 500 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10
+
+python tools/selection/select_cold_start.py \
+  --method cluster_tail \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --output-coco-from data/annotations/train_pool_with_boxes.json \
+  --seed-coco data/annotations/coverage_head_labeled.json \
+  --budget 608 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10 \
+  --target-class-id 0 \
+  --target-box-count 90
+```
+
+`random` and `kcenter` baselines are available from the same selector. The
+`cluster_head` command needs no labels; `cluster_tail` uses only labels from
+the already selected coverage head. See [tools/selection](tools/selection/) for
+the exact options and leakage checks.
+
+**2. Train CROP-DETR with labeled and unlabeled images.** Put the selected
+labels under `data/annotations/labeled_train.json`, keep the remaining pool as
+`unlabeled_train.json`, then use the public SSOD template.
+
+**3. Evaluate the teacher EMA checkpoint.** Use
+`tools/evaluate_ssod_teacher.py` for the paper-style teacher branch metrics.
+
+**4. Add semantic attributes after detection.** The optional semantic sidecar
+uses ROI crops and open prompt-generated labels to attach crack and damage
+attributes to detections.
+
 ## Paper Takeaways
 
 | Question | Paper finding |
@@ -132,6 +191,8 @@ python tools/semantic/export_semantics.py \
 ```text
 configs/crop_detr/                       sanitized public SSOD template
 engine/                                  model, criterion, solver, verifier, SSOD code
+selection/                               reusable cold-start selection algorithms
+tools/selection/                         DINOv3 feature extraction and selection CLIs
 semantic/                                semantic sidecar library
 tools/semantic/                          semantic sidecar train/export tools
 tools/evaluate_ssod_teacher.py           teacher-EMA evaluation entry point
@@ -147,6 +208,8 @@ third_party/licenses/                    upstream license copies
 - COCO-format labeled annotations.
 - COCO-format unlabeled image records. Unlabeled records may omit boxes.
 - COCO-format validation annotations.
+- A candidate training image pool for cold-start selection.
+- Optional seed-head annotations for rare-class tail expansion.
 - DEIM/DINOv3 backbone weights accepted under their upstream licenses.
 - Frozen DINOv3 verifier weights:
   - `weights/pretrained/dinov3_vits16/`

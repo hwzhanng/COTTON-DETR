@@ -1,0 +1,25 @@
+# Public template for detector-free cold-start selection.
+#
+# This file documents the paper-facing defaults. The selection CLI currently
+# accepts command-line arguments directly; copy these values into the commands in
+# tools/selection/README.md when preparing a run.
+features: outputs/selection/features/dinov3_features.npy
+paths: outputs/selection/features/dinov3_paths.npy
+candidate_coco: data/annotations/candidate_train.json
+exclude_coco:
+  - data/annotations/val.json
+  - data/annotations/test.json
+output_coco_from: data/annotations/train_pool_with_boxes.json
+seed_coco: data/annotations/coverage_head_labeled.json
+method: cluster_tail
+budget: 608
+seed: 43
+head_budget: 500
+n_clusters: 50
+per_cluster: 10
+kmeans_n_init: 10
+target_class_id: 0
+target_box_count: 90
+tail_cluster_count: 3
+tail_safety_factor: 1.4
+output_dir: outputs/selection/cold_start

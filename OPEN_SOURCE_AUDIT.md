@@ -31,6 +31,11 @@ Reproducibility materials added:
   `requirements.txt` remains a looser install file.
 - `scripts/check_repro_package.py` validates config, data, and weight paths
   without importing Torch.
+- `selection/`, `tools/selection/`, and
+  `configs/crop_detr/cold_start_selection_template.yaml` expose the
+  detector-free cold-start selection stage, including random, k-center, and
+  DINOv3 cluster-tail selection, without shipping selected image lists,
+  annotations, feature caches, or local experiment outputs.
 - `docs/assets/` stores web-optimized selected manuscript figures for the
   README files only; raw experiment archives and figure-generation workspaces
   remain excluded.

@@ -6,6 +6,7 @@ pillow
 numpy
 tensorboard
 scipy
+scikit-learn
 calflops
 transformers
 safetensors

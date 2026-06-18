@@ -21,6 +21,63 @@ CROP-DETR 是一套标注高效的田间棉铃检测代码。论文的核心结�
 本仓库包含代码、脱敏配置、复现实验说明和 README 用的论文图。仓库不包含
 数据集、预训练权重、验证器头、检查点、训练日志、论文草稿或原始实验归档。
 
+## 论文管线
+
+仓库按论文流程的执行顺序组织。
+
+**1. 在训练检测器之前选图。** 先为候选训练池提取冻结 DINOv3 特征，
+选择 500 张覆盖性样本进入标注，再利用已标注样本中的稀缺类种子簇扩展到
+608 张。
+
+```bash
+python tools/selection/extract_dinov3_features.py \
+  --image-dir data/candidate/images \
+  --model-dir weights/pretrained/dinov3_vits16 \
+  --output-dir outputs/selection/features
+
+python tools/selection/select_cold_start.py \
+  --method cluster_head \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --budget 500 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10
+
+python tools/selection/select_cold_start.py \
+  --method cluster_tail \
+  --features outputs/selection/features/dinov3_features.npy \
+  --paths outputs/selection/features/dinov3_paths.npy \
+  --candidate-coco data/annotations/candidate_train.json \
+  --exclude-coco data/annotations/val.json \
+  --exclude-coco data/annotations/test.json \
+  --output-coco-from data/annotations/train_pool_with_boxes.json \
+  --seed-coco data/annotations/coverage_head_labeled.json \
+  --budget 608 \
+  --head-budget 500 \
+  --n-clusters 50 \
+  --per-cluster 10 \
+  --target-class-id 0 \
+  --target-box-count 90
+```
+
+同一入口也提供 `random` 和 `kcenter` 基线。`cluster_head` 不需要标签；
+`cluster_tail` 只使用已经选入覆盖头部的标注。完整参数和防泄漏检查见
+[tools/selection](tools/selection/)。
+
+**2. 用标注图和无标注图训练 CROP-DETR。** 将选出的标注写入
+`data/annotations/labeled_train.json`，将剩余训练池保留为
+`unlabeled_train.json`，然后使用公开 SSOD 模板训练。
+
+**3. 评估 teacher EMA checkpoint。** 使用
+`tools/evaluate_ssod_teacher.py` 按论文口径评估 teacher 分支。
+
+**4. 检测后补充语义属性。** 可选语义 sidecar 使用 ROI crop 和开源提示词
+生成的标签，为检测框附加开裂、损伤等结构化属性。
+
 ## 论文结论
 
 | 问题 | 论文发现 |
@@ -119,6 +176,8 @@ python tools/semantic/export_semantics.py \
 ```text
 configs/crop_detr/                       脱敏后的公开 SSOD 模板
 engine/                                  模型、损失、求解器、验证器与 SSOD 代码
+selection/                               可复用冷启动选样算法
+tools/selection/                         DINOv3 特征提取与选样命令行工具
 semantic/                                语义编码模块库
 tools/semantic/                          语义编码训练/导出工具
 tools/evaluate_ssod_teacher.py           teacher EMA 评估入口
@@ -134,6 +193,8 @@ third_party/licenses/                    上游许可证副本
 - COCO 格式标注训练集。
 - COCO 格式无标注图像记录；无标注记录可以没有 boxes。
 - COCO 格式验证集标注。
+- 用于冷启动选样的候选训练图像池。
+- 稀缺类尾部扩展所需的覆盖头部标注，可选。
 - 符合上游许可证的 DEIM/DINOv3 骨干权重。
 - 冻结 DINOv3 验证器权重：
   - `weights/pretrained/dinov3_vits16/`
