@@ -27,15 +27,32 @@ Minimum JSONL row schema:
   "opening_percentage": 85,
   "damage_present": true,
   "damage_type": "stain_or_contamination",
-  "damage_severity": "mild"
+  "damage_severity": "mild",
+  "visual_description": "A concise English description of visible evidence.",
+  "confidence": 4,
+  "needs_human_review": false,
+  "evidence": "Short visible-evidence rationale."
 }
 ```
+
+The training script uses the structured semantic targets. The validation script
+also checks quality-control fields reported in the paper, including confidence
+and review priority.
 
 Train:
 
 ```bash
 python tools/semantic/train_semantic_head.py \
   --config configs/crop_detr/semantic_sidecar_template.yaml
+```
+
+Validate labels before training:
+
+```bash
+python tools/semantic/validate_semantic_labels.py \
+  data/semantic/semantic_labels_train.jsonl \
+  --output outputs/semantic/label_schema_report.json \
+  --fail-on-error
 ```
 
 Attach semantics to detections:

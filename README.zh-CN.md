@@ -178,6 +178,8 @@ configs/crop_detr/                       脱敏后的公开 SSOD 模板
 engine/                                  模型、损失、求解器、验证器与 SSOD 代码
 selection/                               可复用冷启动选样算法
 tools/selection/                         DINOv3 特征提取与选样命令行工具
+tools/verifier/                          DINOv3 验证器头训练与阈值标定
+tools/evaluation/                        腐蚀鲁棒性 mPC/rPC 汇总工具
 semantic/                                语义编码模块库
 tools/semantic/                          语义编码训练/导出工具
 tools/evaluate_ssod_teacher.py           teacher EMA 评估入口
@@ -201,7 +203,7 @@ third_party/licenses/                    上游许可证副本
   - `weights/pretrained/verifier_head.pt`
   - `weights/pretrained/verifier_head_4cls.pt`
 
-公开模板使用中性验证器阈值和类别权重。迁移到你的数据集时，需要调整
+公开模板给出论文 608 图设置中的验证器阈值和类别损失权重。迁移到你的数据集时，需要调整
 `num_classes`、`accept_threshold`、`class_loss_scale` 和
 `class_balanced_sampling`。
 

@@ -16,6 +16,7 @@ data/
     labeled_train.json
     unlabeled_train.json
     val.json
+    test.json
 ```
 
 Annotation files should use COCO detection format.

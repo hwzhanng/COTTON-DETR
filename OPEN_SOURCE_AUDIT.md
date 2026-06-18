@@ -34,8 +34,16 @@ Reproducibility materials added:
 - `selection/`, `tools/selection/`, and
   `configs/crop_detr/cold_start_selection_template.yaml` expose the
   detector-free cold-start selection stage, including random, k-center, and
-  DINOv3 cluster-tail selection, without shipping selected image lists,
-  annotations, feature caches, or local experiment outputs.
+  DINOv3 cluster-tail selection plus nested budget derivation, without shipping
+  selected image lists, annotations, feature caches, or local experiment
+  outputs.
+- `tools/verifier/` exposes DINOv3 linear verifier-head training and validation
+  threshold calibration without redistributing verifier weights or ROI crops.
+- `tools/evaluation/` exposes the paper's mPC/rPC corruption summary formula
+  without shipping corrupted datasets or evaluation outputs.
+- `semantic/schema.py` and `tools/semantic/validate_semantic_labels.py` expose
+  the semantic-label schema and consistency checks without including VLM
+  responses or API callers.
 - `docs/assets/` stores web-optimized selected manuscript figures for the
   README files only; raw experiment archives and figure-generation workspaces
   remain excluded.

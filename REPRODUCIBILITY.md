@@ -151,6 +151,48 @@ python tools/selection/select_cold_start.py \
 The generated CSV, selected COCO file, and manifest are run artifacts. They are
 ignored by Git and should not be committed.
 
+Build nested 152/304/608 subsets from the full 608 selection:
+
+```bash
+python tools/selection/make_nested_subsets.py \
+  --selection-csv outputs/selection/cold_start/selected_cluster_tail_seed43_n608.csv \
+  --budgets 152 304 608 \
+  --output-coco-from data/annotations/train_pool_with_boxes.json \
+  --output-dir outputs/selection/nested
+```
+
+## Verifier Head Calibration
+
+The SSOD verifier uses frozen DINOv3 ROI features and linear heads. Train the
+heads from your labeled training set and calibrate four-class acceptance
+thresholds on validation crops:
+
+```bash
+python tools/verifier/train_linear_verifier.py \
+  --train-coco data/annotations/labeled_train.json \
+  --train-image-dir data/labeled/images \
+  --val-coco data/annotations/val.json \
+  --val-image-dir data/val/images \
+  --model-dir weights/pretrained/dinov3_vits16 \
+  --class-weight 0=1.5 \
+  --class-weight 3=1.3 \
+  --category-id-base auto \
+  --target-precision 0.85 \
+  --output-dir outputs/verifier
+```
+
+Verifier class ids are the detector's internal labels `0..num_classes-1`. The
+tool auto-detects common 0-based and 1-based COCO `category_id` values; use
+`--category-id-map raw=internal` for custom category ids.
+
+Copy the generated `verifier_head.pt` and `verifier_head_4cls.pt` into
+`weights/pretrained/` before SSOD training. The default public config records
+the paper's 608-image verifier thresholds:
+
+```text
+Defected 0.57, Flower 0.51, Fully opened 0.70, Partially opened 0.46
+```
+
 ## Training
 
 Single-seed run:
@@ -195,6 +237,17 @@ python tools/evaluate_ssod_teacher.py \
   -d cuda
 ```
 
+For corruption robustness, evaluate each corruption/severity image folder with
+the same checkpoint, then summarize mPC/rPC:
+
+```bash
+python tools/evaluation/summarize_corruption.py \
+  --eval-root outputs/corruption_eval \
+  --clean-metrics outputs/crop_detr_ssod_seed0/eval/test_metrics.json \
+  --output outputs/corruption_eval/corruption_summary.json \
+  --cells-output outputs/corruption_eval/corruption_cells.csv
+```
+
 ## Semantic Sidecar
 
 The semantic sidecar is optional and uses ROI-level semantic labels supplied by
@@ -224,6 +277,15 @@ python tools/semantic/export_semantics.py \
   --coco-images data/annotations/test.json \
   --image-dir data/test/images \
   --output outputs/crop_detr_ssod/test_detections_with_semantics.json
+```
+
+Validate the VLM-generated semantic labels before training:
+
+```bash
+python tools/semantic/validate_semantic_labels.py \
+  data/semantic/semantic_labels_train.jsonl \
+  --output outputs/semantic/label_schema_report.json \
+  --fail-on-error
 ```
 
 ## Reporting Checklist

@@ -13,4 +13,8 @@ weights/pretrained/verifier_head.pt
 weights/pretrained/verifier_head_4cls.pt
 ```
 
-Train or replace the verifier heads for your own dataset.
+Train or replace the verifier heads for your own dataset with:
+
+```bash
+python tools/verifier/train_linear_verifier.py --help
+```

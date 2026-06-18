@@ -1,7 +1,6 @@
 """Post-detection semantic encoding utilities for CROP-DETR."""
 
 from .taxonomy import DAMAGE_TYPES, OPENING_STATES, SEVERITY_LEVELS
-from .model import HierarchicalSemanticHead, SemanticHead
 
 __all__ = [
     "DAMAGE_TYPES",
@@ -10,3 +9,14 @@ __all__ = [
     "HierarchicalSemanticHead",
     "SemanticHead",
 ]
+
+
+def __getattr__(name: str):
+    if name in {"HierarchicalSemanticHead", "SemanticHead"}:
+        from .model import HierarchicalSemanticHead, SemanticHead
+
+        return {
+            "HierarchicalSemanticHead": HierarchicalSemanticHead,
+            "SemanticHead": SemanticHead,
+        }[name]
+    raise AttributeError(name)

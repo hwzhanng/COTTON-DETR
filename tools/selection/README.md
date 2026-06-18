@@ -100,3 +100,19 @@ python tools/selection/select_cold_start.py \
 
 Outputs are CSV/JSON manifests under `outputs/selection/`, which is ignored by
 Git. Do not commit generated selections or annotation files.
+
+## Nested Budgets
+
+The paper reports nested 152/304/608 budgets. After producing the full 608-image
+`cluster_tail` selection, derive lower budgets with:
+
+```bash
+python tools/selection/make_nested_subsets.py \
+  --selection-csv outputs/selection/cold_start/selected_cluster_tail_seed43_n608.csv \
+  --budgets 152 304 608 \
+  --output-coco-from data/annotations/train_pool_with_boxes.json \
+  --output-dir outputs/selection/nested
+```
+
+The tool preserves coverage-head round-robin order across clusters and scales
+the target-tail portion by the tail fraction of the full selection.

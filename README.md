@@ -193,6 +193,8 @@ configs/crop_detr/                       sanitized public SSOD template
 engine/                                  model, criterion, solver, verifier, SSOD code
 selection/                               reusable cold-start selection algorithms
 tools/selection/                         DINOv3 feature extraction and selection CLIs
+tools/verifier/                          DINOv3 verifier-head training/calibration
+tools/evaluation/                        corruption mPC/rPC summary utilities
 semantic/                                semantic sidecar library
 tools/semantic/                          semantic sidecar train/export tools
 tools/evaluate_ssod_teacher.py           teacher-EMA evaluation entry point
@@ -216,9 +218,9 @@ third_party/licenses/                    upstream license copies
   - `weights/pretrained/verifier_head.pt`
   - `weights/pretrained/verifier_head_4cls.pt`
 
-The public template uses neutral verifier thresholds and class weights. Tune
-`num_classes`, `accept_threshold`, `class_loss_scale`, and
-`class_balanced_sampling` for your dataset.
+The public template exposes the paper's 608-image verifier thresholds and
+class-loss weights. Tune `num_classes`, `accept_threshold`,
+`class_loss_scale`, and `class_balanced_sampling` for a new dataset.
 
 ## Quick Start
 
