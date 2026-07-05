@@ -191,6 +191,7 @@ python tools/semantic/export_semantics.py \
 ```text
 configs/cotton_detr/                       sanitized public SSOD template
 engine/                                  model, criterion, solver, verifier, SSOD code
+engine/data/                             dataset loaders, transforms, evaluators, SSOD augmentations
 selection/                               reusable cold-start selection algorithms
 tools/selection/                         DINOv3 feature extraction and selection CLIs
 tools/verifier/                          DINOv3 verifier-head training/calibration

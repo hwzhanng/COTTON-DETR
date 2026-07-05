@@ -176,6 +176,7 @@ python tools/semantic/export_semantics.py \
 ```text
 configs/cotton_detr/                       脱敏后的公开 SSOD 模板
 engine/                                  模型、损失、求解器、验证器与 SSOD 代码
+engine/data/                             数据加载、变换、评估器与 SSOD 增强代码
 selection/                               可复用冷启动选样算法
 tools/selection/                         DINOv3 特征提取与选样命令行工具
 tools/verifier/                          DINOv3 验证器头训练与阈值标定

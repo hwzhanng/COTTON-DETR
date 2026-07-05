@@ -31,6 +31,9 @@ Reproducibility materials added:
   `requirements.txt` remains a looser install file.
 - `scripts/check_repro_package.py` validates config, data, and weight paths
   without importing Torch.
+- `engine/data/` includes the dataset loaders, transforms, COCO evaluator, and
+  SSOD augmentations required by the public training entry point, without
+  shipping datasets or annotations.
 - `selection/`, `tools/selection/`, and
   `configs/cotton_detr/cold_start_selection_template.yaml` expose the
   detector-free cold-start selection stage, including random, k-center, and
