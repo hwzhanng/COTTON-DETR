@@ -6,7 +6,7 @@ source workspace path is intentionally not recorded in this public scaffold.
 Default public template:
 
 ```text
-configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml
+configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
 ```
 
 Version decision:
@@ -32,7 +32,7 @@ Reproducibility materials added:
 - `scripts/check_repro_package.py` validates config, data, and weight paths
   without importing Torch.
 - `selection/`, `tools/selection/`, and
-  `configs/crop_detr/cold_start_selection_template.yaml` expose the
+  `configs/cotton_detr/cold_start_selection_template.yaml` expose the
   detector-free cold-start selection stage, including random, k-center, and
   DINOv3 cluster-tail selection plus nested budget derivation, without shipping
   selected image lists, annotations, feature caches, or local experiment
@@ -47,14 +47,14 @@ Reproducibility materials added:
 - `docs/assets/` stores web-optimized selected manuscript figures for the
   README files only; raw experiment archives and figure-generation workspaces
   remain excluded.
-- `semantic/`, `tools/semantic/`, `configs/crop_detr/semantic_sidecar_template.yaml`,
+- `semantic/`, `tools/semantic/`, `configs/cotton_detr/semantic_sidecar_template.yaml`,
   and `prompts/` expose the semantic encoding code path and prompt templates
   without shipping ROI crops, labels, feature caches, checkpoints, API callers,
   manual-audit UI files, or manuscript asset scripts.
 
 License materials added:
 
-- Root `LICENSE` covers original CROP-DETR additions under Apache License 2.0.
+- Root `LICENSE` covers original COTTON-DETR additions under Apache License 2.0.
 - `NOTICE.md` records that DEIM, D-FINE, and RT-DETR are Apache-2.0 and DINOv3
   code/model materials are under the Meta DINOv3 License.
 - `third_party/licenses/` stores copied upstream license texts.

@@ -1,4 +1,4 @@
-# CROP-DETR SSOD template.
+# COTTON-DETR SSOD template.
 # Replace dataset paths, num_classes, verifier thresholds, and class weights for your dataset.
 task: ssod_detection
 model: DEIM
@@ -9,7 +9,7 @@ use_ema: false
 sync_bn: false
 find_unused_parameters: false
 print_freq: 20
-output_dir: ./outputs/crop_detr_ssod
+output_dir: ./outputs/cotton_detr_ssod
 epoches: 200
 clip_max_norm: 0.1
 num_classes: 4

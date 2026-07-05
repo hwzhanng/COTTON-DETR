@@ -1,5 +1,5 @@
 project:
-  name: crop_detr_semantic_sidecar
+  name: cotton_detr_semantic_sidecar
   root: .
   seed: 0
 

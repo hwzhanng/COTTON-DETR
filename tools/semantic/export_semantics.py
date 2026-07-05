@@ -1,4 +1,4 @@
-"""Attach CROP-DETR semantic sidecar predictions to detection JSON."""
+"""Attach COTTON-DETR semantic sidecar predictions to detection JSON."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def encode_detections(cfg: dict, detections: list[dict], image_dir: Path, coco_i
 @torch.no_grad()
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="configs/crop_detr/semantic_sidecar_template.yaml")
+    parser.add_argument("--config", default="configs/cotton_detr/semantic_sidecar_template.yaml")
     parser.add_argument("--checkpoint", default=None)
     parser.add_argument("--detections", required=True)
     parser.add_argument("--coco-images", required=True, help="COCO JSON with an images list, or a raw images list.")
@@ -118,7 +118,7 @@ def main() -> None:
             semantic["damage_severity"], semantic["damage_severity_similarity"] = nearest_name(norm_features[idx], severity_proto, SEVERITY_LEVELS)
         item["semantics"] = semantic
         enriched.append(item)
-    write_json(args.output, {"method": "crop_detr_semantic_sidecar", "checkpoint": str(checkpoint), "detections": enriched})
+    write_json(args.output, {"method": "cotton_detr_semantic_sidecar", "checkpoint": str(checkpoint), "detections": enriched})
     print(json.dumps({"detections": len(enriched), "output": str(args.output)}, ensure_ascii=False, indent=2))
 
 

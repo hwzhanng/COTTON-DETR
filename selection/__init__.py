@@ -1,4 +1,4 @@
-"""Cold-start selection helpers for CROP-DETR."""
+"""Cold-start selection helpers for COTTON-DETR."""
 
 from .algorithms import (
     kcenter_greedy,

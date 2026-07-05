@@ -90,7 +90,7 @@ def evaluate(model, loader, device) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="configs/crop_detr/semantic_sidecar_template.yaml")
+    parser.add_argument("--config", default="configs/cotton_detr/semantic_sidecar_template.yaml")
     parser.add_argument("--force-features", action="store_true")
     args = parser.parse_args()
 

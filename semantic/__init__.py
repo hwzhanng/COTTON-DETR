@@ -1,4 +1,4 @@
-"""Post-detection semantic encoding utilities for CROP-DETR."""
+"""Post-detection semantic encoding utilities for COTTON-DETR."""
 
 from .taxonomy import DAMAGE_TYPES, OPENING_STATES, SEVERITY_LEVELS
 

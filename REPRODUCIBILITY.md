@@ -1,7 +1,7 @@
 # Reproducibility
 
 This repository is a code-only release. It provides the training recipe,
-configuration, and checks needed to reproduce a CROP-DETR run, but it does not
+configuration, and checks needed to reproduce a COTTON-DETR run, but it does not
 include private datasets, pretrained weights, verifier heads, checkpoints, logs,
 or paper result archives.
 
@@ -10,7 +10,7 @@ or paper result archives.
 The default public configuration is:
 
 ```text
-configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml
+configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
 ```
 
 It corresponds to the v5 SSOD stack used for release preparation: DINOv3STAs
@@ -81,7 +81,7 @@ Run the lightweight checker before training. It does not import Torch.
 
 ```bash
 python scripts/check_repro_package.py \
-  --config configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml
+  --config configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
 ```
 
 Use `--allow-missing` when preparing a package before data or weights have been
@@ -199,7 +199,7 @@ Single-seed run:
 
 ```bash
 bash train_guarded.sh \
-  -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+  -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
   -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
   -d cuda \
   --seed 0 \
@@ -211,11 +211,11 @@ Three-seed rerun:
 ```bash
 for seed in 0 1 2; do
   bash train_guarded.sh \
-    -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+    -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
     -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
     -d cuda \
     --seed "${seed}" \
-    --output-dir "outputs/crop_detr_ssod_seed${seed}" \
+    --output-dir "outputs/cotton_detr_ssod_seed${seed}" \
     --use-amp
 done
 ```
@@ -231,9 +231,9 @@ Evaluate the teacher EMA checkpoint:
 
 ```bash
 python tools/evaluate_ssod_teacher.py \
-  -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
-  --checkpoint outputs/crop_detr_ssod_seed0/best_teacher_ema.pth \
-  --output-dir outputs/crop_detr_ssod_seed0/eval \
+  -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
+  --checkpoint outputs/cotton_detr_ssod_seed0/best_teacher_ema.pth \
+  --output-dir outputs/cotton_detr_ssod_seed0/eval \
   -d cuda
 ```
 
@@ -243,7 +243,7 @@ the same checkpoint, then summarize mPC/rPC:
 ```bash
 python tools/evaluation/summarize_corruption.py \
   --eval-root outputs/corruption_eval \
-  --clean-metrics outputs/crop_detr_ssod_seed0/eval/test_metrics.json \
+  --clean-metrics outputs/cotton_detr_ssod_seed0/eval/test_metrics.json \
   --output outputs/corruption_eval/corruption_summary.json \
   --cells-output outputs/corruption_eval/corruption_cells.csv
 ```
@@ -265,18 +265,18 @@ Train the sidecar:
 
 ```bash
 python tools/semantic/train_semantic_head.py \
-  --config configs/crop_detr/semantic_sidecar_template.yaml
+  --config configs/cotton_detr/semantic_sidecar_template.yaml
 ```
 
 Attach semantic attributes to detections:
 
 ```bash
 python tools/semantic/export_semantics.py \
-  --config configs/crop_detr/semantic_sidecar_template.yaml \
-  --detections outputs/crop_detr_ssod/test_detections.json \
+  --config configs/cotton_detr/semantic_sidecar_template.yaml \
+  --detections outputs/cotton_detr_ssod/test_detections.json \
   --coco-images data/annotations/test.json \
   --image-dir data/test/images \
-  --output outputs/crop_detr_ssod/test_detections_with_semantics.json
+  --output outputs/cotton_detr_ssod/test_detections_with_semantics.json
 ```
 
 Validate the VLM-generated semantic labels before training:

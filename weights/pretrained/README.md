@@ -2,7 +2,7 @@
 
 Weights are intentionally not included.
 
-Default paths expected by `configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml`:
+Default paths expected by `configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml`:
 
 ```text
 weights/pretrained/deimv2_dinov3_s_coco_tuning.pth

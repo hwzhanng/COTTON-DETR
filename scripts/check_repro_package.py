@@ -1,4 +1,4 @@
-"""Check whether the public CROP-DETR package is ready for a rerun."""
+"""Check whether the public COTTON-DETR package is ready for a rerun."""
 
 from __future__ import annotations
 
@@ -45,8 +45,8 @@ def main() -> int:
     parser.add_argument(
         "-c",
         "--config",
-        default="configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml",
-        help="Path to the CROP-DETR config.",
+        default="configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml",
+        help="Path to the COTTON-DETR config.",
     )
     parser.add_argument(
         "--tuning-weights",
@@ -88,7 +88,7 @@ def main() -> int:
 
     missing = [(name, path) for name, path in checks if path is None or not path.exists()]
 
-    print("CROP-DETR reproducibility preflight")
+    print("COTTON-DETR reproducibility preflight")
     print(f"repo_root: {repo_root}")
     print(f"config: {config_path}")
     print()

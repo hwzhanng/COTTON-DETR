@@ -1,6 +1,6 @@
 # Cotton Boll ROI Semantic Labeling Prompt
 
-Purpose: generate ROI-level structured labels for the CROP-DETR semantic sidecar. The input should be a crop of one target cotton boll or flower, or a local image with a clearly marked target box. Judge only the target object inside the box.
+Purpose: generate ROI-level structured labels for the COTTON-DETR semantic sidecar. The input should be a crop of one target cotton boll or flower, or a local image with a clearly marked target box. Judge only the target object inside the box.
 
 You are an annotator for in-field cotton imagery. Use visible evidence to classify the target object's opening state, damage type, and damage severity.
 

@@ -1,6 +1,6 @@
-# CROP-DETR Configs
+# COTTON-DETR Configs
 
-`crop_detr_dinov3_tiny_ssod.yml` is the public paper template for the final v5
+`cotton_detr_dinov3_tiny_ssod.yml` is the public paper template for the final v5
 SSOD stack:
 
 - DEIM-style detector with DINOv3STAs ViT-Tiny backbone.

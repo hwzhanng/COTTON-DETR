@@ -1,10 +1,10 @@
 # Notice
 
-This repository is a cleaned code scaffold for CROP-DETR. It does not include
+This repository is a cleaned code scaffold for COTTON-DETR. It does not include
 datasets, experiment outputs, checkpoints, pretrained weights, verifier heads,
 paper drafts, server scripts, or private training configuration.
 
-Original CROP-DETR additions are distributed under the Apache License 2.0 in
+Original COTTON-DETR additions are distributed under the Apache License 2.0 in
 `LICENSE`.
 
 Third-party derived components retain their upstream notices and terms:

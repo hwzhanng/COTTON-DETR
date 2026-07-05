@@ -7,7 +7,7 @@
 # BEFORE the run and AGAIN on exit (normal, Ctrl-C, or kill) via a trap.
 #
 # Usage (same args as train.py):
-#   bash train_guarded.sh -c configs/crop_detr/crop_detr_dinov3_tiny_ssod.yml \
+#   bash train_guarded.sh -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
 #        -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth -d cuda --use-amp
 #
 # Optional: if /dev/shm fills DURING the run (not just leftovers), the file_system

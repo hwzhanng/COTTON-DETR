@@ -10,7 +10,7 @@ Example from a directory of per-cell evaluation JSON files:
 ```bash
 python tools/evaluation/summarize_corruption.py \
   --eval-root outputs/corruption_eval \
-  --clean-metrics outputs/crop_detr_ssod/eval/test_metrics.json \
+  --clean-metrics outputs/cotton_detr_ssod/eval/test_metrics.json \
   --output outputs/corruption_eval/corruption_summary.json \
   --cells-output outputs/corruption_eval/corruption_cells.csv
 ```
