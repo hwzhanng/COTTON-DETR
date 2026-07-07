@@ -57,7 +57,9 @@ Reproducibility materials added:
 
 License materials added:
 
-- Root `LICENSE` covers original COTTON-DETR additions under Apache License 2.0.
+- Root `LICENSE` covers original COTTON-DETR additions and release materials
+  under CC BY-NC 4.0, with non-commercial use only unless separate permission is
+  granted by the authors.
 - `NOTICE.md` records that DEIM, D-FINE, and RT-DETR are Apache-2.0 and DINOv3
   code/model materials are under the Meta DINOv3 License.
 - `third_party/licenses/` stores copied upstream license texts.

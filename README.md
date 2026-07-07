@@ -253,10 +253,12 @@ checklist, see [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
 
 ## License And Notices
 
-Original COTTON-DETR additions are released under the Apache License 2.0 in
-[LICENSE](LICENSE). Third-party derived components remain under upstream terms:
-DEIM, D-FINE, and RT-DETR are Apache-2.0; DINOv3 code and model materials are
-under the Meta DINOv3 License. Copies are stored in
+Original COTTON-DETR additions and release materials are licensed under
+[CC BY-NC 4.0](LICENSE). Non-commercial use is permitted with attribution;
+commercial use requires prior written permission from the COTTON-DETR authors.
+Third-party derived components remain under upstream terms: DEIM, D-FINE, and
+RT-DETR are Apache-2.0; DINOv3 code and model materials are under the Meta
+DINOv3 License. Copies are stored in
 [third_party/licenses/](third_party/licenses/).
 
 This repository does not redistribute datasets, pretrained weights, verifier
@@ -266,5 +268,7 @@ licenses.
 
 ## Citation
 
-The manuscript title and citation metadata are not finalized yet. Add the paper
-citation here before public release.
+Use of this repository requires citation of our article. The citation metadata
+will be updated after publication.
+
+- Article: [COTTON-DETR]()

@@ -238,14 +238,17 @@ python tools/evaluate_ssod_teacher.py \
 
 ## 许可证与声明
 
-我们自己的 COTTON-DETR 新增部分按 [LICENSE](LICENSE) 中的 Apache License
-2.0 发布。第三方派生部分保留上游许可证：DEIM、D-FINE、RT-DETR 为
-Apache-2.0；DINOv3 代码和模型材料遵循 Meta DINOv3 License。许可证副本
-位于 [third_party/licenses/](third_party/licenses/)。
+我们自己的 COTTON-DETR 新增部分和发布材料按 [CC BY-NC
+4.0](LICENSE) 发布。允许非商业使用，但必须署名；商业使用需要事先获得
+COTTON-DETR 作者的书面许可。第三方派生部分保留上游许可证：DEIM、
+D-FINE、RT-DETR 为 Apache-2.0；DINOv3 代码和模型材料遵循 Meta DINOv3
+License。许可证副本位于 [third_party/licenses/](third_party/licenses/)。
 
 本仓库不重新分发数据集、预训练权重、验证器头、检查点或原始实验输出。
 用户需要自行确保外部模型权重和数据集的使用符合对应许可证。
 
 ## 引用
 
-论文标题和引用信息尚未最终定稿。公开发布前在此处补充正式引用。
+使用本仓库必须引用我们的文章。正式引用信息将在论文发表后更新。
+
+- 文章：[COTTON-DETR]()
