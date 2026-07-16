@@ -1,15 +1,16 @@
 # README Figure Assets
 
-These files are web-optimized copies of selected paper figures used by the
-repository README files. They are included for project overview and do not
-replace the raw experimental artifacts or the paper figure-generation scripts.
+This directory contains web-renderable exports of selected manuscript figures.
+They support the repository overview and do not replace source data, raw
+experimental artifacts, or figure-generation scripts.
 
-Source figures were copied from the local manuscript figure outputs during
-release preparation:
+The current README files use:
 
-- `figure_1_pipeline.png`
-- `figure_3_label_efficiency.png`
-- `figure_4_robustness.png`
-- `figure_5_verifier_basis.png`
-- `figure_6_qualitative.jpg`
-- `figure_9_semantic.jpg`
+- `cotton_detr_pipeline.png`: end-to-end DINOv3 lineage and workflow.
+- `cotton_detr_architecture.png`: reliability-controlled SSOD architecture.
+- `cotton_detr_label_efficiency.png`: three-seed label-efficiency results.
+- `cotton_detr_crossdomain.png`: unseen-domain retention and SSOD gains.
+- `cotton_detr_robustness.png`: corruption robustness analysis.
+- `cotton_detr_semantic.png`: ROI semantic encoding examples.
+
+Files named `figure_*` are retained as legacy README assets for stable links.

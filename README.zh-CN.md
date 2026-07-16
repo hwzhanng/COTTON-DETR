@@ -1,33 +1,170 @@
+<div align="center">
+
 # COTTON-DETR
 
-**面向低标注、长尾棉铃多状态检测的检测器无关冷启动选样与
-DINOv3 验证半监督 DETR。**
+### 标注高效的田间棉铃多状态检测
 
-[English](README.md) | [中文](README.zh-CN.md)
+**由同一 DINOv3 谱系驱动的检测器无关冷启动选样与可靠性受控半监督学习**
+
+[English](README.md) | [中文](README.zh-CN.md) | [复现说明](REPRODUCIBILITY.md) | [开源许可](LICENSE)
+
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey.svg)](LICENSE)
+
+</div>
 
 <p align="center">
-  <img src="docs/assets/figure_1_pipeline.png" alt="COTTON-DETR pipeline" width="900">
+  <img src="docs/assets/cotton_detr_pipeline.png" alt="COTTON-DETR 端到端管线" width="100%">
 </p>
 
-COTTON-DETR 是一套标注高效的田间棉铃检测代码。论文的核心结论不在
-单个组件，而在一个可复用设计：同一族 DINOv3 自监督表征可以在长尾
-农业检测流程中协同承担四个角色。
+## 项目概览
 
-1. **冷启动选样**：在训练任何检测器之前决定标注哪些图像。
-2. **伪标签验证**：用冻结 DINOv3 验证器过滤教师预测，而不是只信检测器分数。
-3. **DINOv3 蒸馏检测骨干**：提供紧凑且腐蚀鲁棒的 DETR 检测器。
-4. **检测后语义编码**：把检测框扩展为结构化农艺属性。
+田间图像精细标注成本高，而农业目标通常密集、细粒度且具有明显长尾分布。COTTON-DETR 是一套标注高效的检测管线，将同一 DINOv3 自监督预训练谱系复用于四个角色：检测器无关的冷启动选样、伪标签验证、蒸馏 DETR 骨干，以及检测后的 ROI 语义编码。
 
-本仓库包含代码、脱敏配置、复现实验说明和 README 用的论文图。仓库不包含
-数据集、预训练权重、验证器头、检查点、训练日志、论文草稿或原始实验归档。
+在 3,982 张田间图像中仅标注 608 张（15%）时，COTTON-DETR 在域内测试集取得 **0.604 mAP** 和 **0.856 rPC**。半监督的主要价值体现在分布偏移下：相对同架构纯监督模型，无标注数据使跨域 mAP 提升 **+0.086**，同时保留 **91%** 的域内精度。本仓库仅发布代码、脱敏配置、提示词与复现工具，不包含私有数据、权重、检查点或实验归档。
 
-## 论文管线
+## 核心特点
 
-仓库按论文流程的执行顺序组织。
+- **检测器无关冷启动。** 在任何任务检测器训练之前，冻结 DINOv3 ViT-B/16 特征先选择覆盖整体分布的标注头部，再向稀缺残次类扩展。
+- **可靠性受控半监督检测。** 独立冻结的 DINOv3 验证器对教师框重新判类并筛除不可靠候选；类别由验证器决定，损失权重仍由教师证据决定。
+- **有边界的标签效率结论。** 三种子实验显示，域内 mAP 增益在 152 张标注时最大（+0.043），预算增大后收窄；腐蚀鲁棒性在三个预算下均保持正增益。
+- **跨域泛化。** 在 608 张标注设置下，COTTON-DETR 相对同架构纯监督基线将合并外部域 mAP 从 0.462 提升到 0.548。
+- **超越检测框的语义输出。** 冻结 DINOv3 ROI 编码器输出开裂状态、开裂比例、损伤亚型和严重程度等结构化农艺线索。
 
-**1. 在训练检测器之前选图。** 先为候选训练池提取冻结 DINOv3 特征，
-选择 500 张覆盖性样本进入标注，再利用已标注样本中的稀缺类种子簇扩展到
-608 张。
+## 方法
+
+<p align="center">
+  <img src="docs/assets/cotton_detr_architecture.png" alt="COTTON-DETR 可靠性受控半监督架构" width="100%">
+</p>
+
+COTTON-DETR 采用 teacher-student DETR。EMA 教师从弱增强无标注图像中产生候选框；冻结 DINOv3 ViT-S/16 验证器独立校验 ROI 类别并拒绝不可靠候选；学生使用强增强无标注图像上的已验证伪标签，以及标注图像上的真值框联合优化。
+
+该设计将检测器自训练通常耦合的两个判断分开：
+
+1. **这个 ROI 属于哪一类？** 由 DINOv3 验证器给出类别判断。
+2. **这个样本应贡献多大损失？** 由教师分数给出权重。
+
+这种解耦针对长尾类别中的确认偏置，同时避免把验证器扩展为第二个可训练检测器。
+
+## 实验结果
+
+### 标签效率与腐蚀鲁棒性
+
+<p align="center">
+  <img src="docs/assets/cotton_detr_label_efficiency.png" alt="三种子标签效率与鲁棒性结果" width="100%">
+</p>
+
+受控比较使用相同的 DEIMv2-DINOv3-S 架构、标注子集、数据增强与评测划分；半监督行额外使用 3,374 张无标注图像。下表均为 523 张测试图像上的三种子均值 ± 标准差。
+
+`mPC` 表示各腐蚀类型与强度下的平均 mAP，`rPC = mPC / clean mAP`。
+
+| 方法 | 标注图像数 | mAP ↑ | mPC / rPC ↑ |
+|---|---:|---:|---:|
+| 纯监督 | 152 | 0.534 ± 0.008 | 0.422 ± 0.006 / 0.790 ± 0.004 |
+| **COTTON-DETR** | **152** | **0.578 ± 0.005** | **0.476 ± 0.008 / 0.824 ± 0.008** |
+| 纯监督 | 304 | 0.575 ± 0.004 | 0.456 ± 0.005 / 0.792 ± 0.005 |
+| **COTTON-DETR** | **304** | **0.585 ± 0.007** | **0.495 ± 0.005 / 0.846 ± 0.004** |
+| 纯监督 | 608 | 0.592 ± 0.009 | 0.494 ± 0.004 / 0.835 ± 0.015 |
+| **COTTON-DETR** | **608** | **0.604 ± 0.005** | **0.517 ± 0.003 / 0.856 ± 0.005** |
+
+按各方法报告的 best-test checkpoint 进行相同标注预算比较，COTTON-DETR 于 152/608 张标注时取得 0.578/0.604 mAP；Soft Teacher 为 0.496/0.541，Semi-DETR 为 0.497/0.547。这一 checkpoint 级比较说明，通用 SSOD 配方不能直接解决该田间长尾场景。
+
+### 组件证据
+
+| 组件 | 608 张标注下的三种子证据 | 结论边界 |
+|---|---|---|
+| DINOv3 验证器 | 残次铃 F1：0.561 ± 0.043 → **0.606 ± 0.013** | 主要修复并稳定稀缺类；mAP 仅由 0.599 变为 0.604。 |
+| DINOv3 冷启动选样 | 残次铃 F1：0.591 ± 0.055 → **0.618 ± 0.005** | 主要改善稀缺类覆盖和方差，而非大幅抬高平均 mAP。 |
+| 无标注训练数据 | 152/304/608 张标注下 rPC 分别提升 +0.035、+0.053、+0.021 | 在同一架构内带来较小但一致的鲁棒性增益。 |
+
+### 未见域泛化
+
+<p align="center">
+  <img src="docs/assets/cotton_detr_crossdomain.png" alt="跨域精度保持率与半监督增益" width="100%">
+</p>
+
+在两个未见田间域上，COTTON-DETR 取得 **0.548 ± 0.005 mAP** 和 **0.908 ± 0.016 rExt**；同架构纯监督基线为 **0.462 ± 0.034 mAP** 和 **0.780 ± 0.061 rExt**，其中 `rExt = 外部域 mAP / 域内 mAP`。608 张标注时，+0.086 的跨域 mAP 增益约为 +0.012 域内增益的七倍。外部评测规模为 180 张图像、510 个框，更广泛的跨地点与跨作物验证仍是后续工作。
+
+### 腐蚀鲁棒性
+
+<p align="center">
+  <img src="docs/assets/cotton_detr_robustness.png" alt="合成腐蚀下的准确率与鲁棒性" width="100%">
+</p>
+
+跨架构鲁棒性趋势主要与 DINOv3 蒸馏检测骨干相关；在相同架构内部，半监督学习再贡献较小的正增量。ImageNet-C 风格合成腐蚀在本文中是成像退化的可控代理，不能替代真实域偏移评测。
+
+### ROI 语义编码
+
+<p align="center">
+  <img src="docs/assets/cotton_detr_semantic.png" alt="COTTON-DETR 语义编码示例" width="100%">
+</p>
+
+可选语义组件把检测 ROI 转换为开裂状态、开裂比例、损伤亚型和严重程度。以 ROI 级 VLM 标签为参照时，原型匹配将损伤严重程度一致性 F1 从 0.448 提升至 **0.611**。这些输出是结构化视觉线索，不是专家病理诊断，也不等同于人工真值准确率。
+
+## 仓库结构
+
+```text
+COTTON-DETR/
+├── configs/cotton_detr/       # 公开 SSOD 与语义配置模板
+├── engine/                    # 检测器、损失、求解器与 SSOD 运行时
+├── selection/                 # 冷启动选样算法
+├── semantic/                  # ROI 语义编码库
+├── tools/selection/           # 特征提取与选样命令行工具
+├── tools/verifier/            # 验证器训练与阈值校准
+├── tools/evaluation/          # 腐蚀指标汇总工具
+├── tools/semantic/            # 语义训练、校验与导出
+├── prompts/                   # 开源 ROI 语义标注提示词
+├── scripts/                   # 复现预检脚本
+├── REPRODUCIBILITY.md         # 端到端复现实验协议
+└── third_party/licenses/      # 上游许可证与声明
+```
+
+## 安装
+
+训练环境为 Linux + NVIDIA GPU。请先安装与 CUDA 驱动匹配的 PyTorch，再安装其余依赖。
+
+```bash
+git clone https://github.com/hwzhanng/COTTON-DETR.git
+cd COTTON-DETR
+
+python -m venv .venv
+source .venv/bin/activate
+
+# 仅为示例，请根据 CUDA 环境选择对应 wheel。
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements-repro.txt
+```
+
+## 数据与权重
+
+默认配置使用 COCO 格式标注：
+
+```text
+data/
+├── candidate/images/
+├── labeled/images/
+├── unlabeled/images/
+├── val/images/
+└── annotations/
+    ├── candidate_train.json
+    ├── coverage_head_labeled.json
+    ├── labeled_train.json
+    ├── unlabeled_train.json
+    ├── val.json
+    └── test.json
+```
+
+使用者需要按上游许可自行获取 DEIMv2-DINOv3 检测器初始化权重与 DINOv3 模型文件，并用自己的标注数据训练验证器头。训练前运行预检：
+
+```bash
+python scripts/check_repro_package.py \
+  --config configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
+```
+
+仅在准备目录结构时使用 `--allow-missing`。
+
+## 复现流程
+
+### 1. 冷启动选样
 
 ```bash
 python tools/selection/extract_dinov3_features.py \
@@ -43,178 +180,27 @@ python tools/selection/select_cold_start.py \
   --exclude-coco data/annotations/val.json \
   --exclude-coco data/annotations/test.json \
   --budget 500 \
-  --head-budget 500 \
-  --n-clusters 50 \
-  --per-cluster 10
-
-python tools/selection/select_cold_start.py \
-  --method cluster_tail \
-  --features outputs/selection/features/dinov3_features.npy \
-  --paths outputs/selection/features/dinov3_paths.npy \
-  --candidate-coco data/annotations/candidate_train.json \
-  --exclude-coco data/annotations/val.json \
-  --exclude-coco data/annotations/test.json \
-  --output-coco-from data/annotations/train_pool_with_boxes.json \
-  --seed-coco data/annotations/coverage_head_labeled.json \
-  --budget 608 \
-  --head-budget 500 \
-  --n-clusters 50 \
-  --per-cluster 10 \
-  --target-class-id 0 \
-  --target-box-count 90
+  --output-dir outputs/selection/coverage_head
 ```
 
-同一入口也提供 `random` 和 `kcenter` 基线。`cluster_head` 不需要标签；
-`cluster_tail` 只使用已经选入覆盖头部的标注。完整参数和防泄漏检查见
-[tools/selection](tools/selection/)。
+完成覆盖头部标注后，继续执行 `cluster_tail` 并构建嵌套的 152/304/608 子集。完整命令和防数据泄漏检查见 [REPRODUCIBILITY.md](REPRODUCIBILITY.md#cold-start-selection)。
 
-**2. 用标注图和无标注图训练 COTTON-DETR。** 将选出的标注写入
-`data/annotations/labeled_train.json`，将剩余训练池保留为
-`unlabeled_train.json`，然后使用公开 SSOD 模板训练。
-
-**3. 评估 teacher EMA checkpoint。** 使用
-`tools/evaluate_ssod_teacher.py` 按论文口径评估 teacher 分支。
-
-**4. 检测后补充语义属性。** 可选语义 sidecar 使用 ROI crop 和开源提示词
-生成的标签，为检测框附加开裂、损伤等结构化属性。
-
-## 论文结论
-
-| 问题 | 论文发现 |
-|---|---|
-| 半监督最主要帮在哪里？ | mAP 增益集中在最低标注预算：**152 张标注图像处 +0.043 mAP**，配对检验显著；304/608 张标注图像处收敛到约 +0.01。 |
-| 鲁棒性增益是否稳定？ | 稳定。mPC/rPC 在每个预算下均提升；608 张标注图像时 COTTON-DETR 为 **0.517 mPC / 0.856 rPC**，纯监督为 **0.494 / 0.835**。 |
-| 通用 SSOD 方法能否直接迁移？ | 在该长尾场景下不可靠。608 张标注图像时 Soft Teacher 和 Semi-DETR 为 **0.541/0.547 mAP**，低于纯监督锚点 **0.592**；COTTON-DETR 为 **0.604**。 |
-| 稀缺残次铃类由什么改善？ | 两端共同贡献：DINOv3 冷启动选样把残次 F1 稳定到 **0.618±0.005**（随机为 **0.591±0.055**）；验证器相对仅检测器分数带来 **+0.092 残次 F1**。 |
-| 检测框能否输出更多农艺语义？ | 语义编码组件在论文的 VLM 标签一致性口径下，把损伤严重程度 F1 从 **0.448** 提升到 **0.611**。 |
-
-## 主结果
-
-<p align="center">
-  <img src="docs/assets/figure_3_label_efficiency.png" alt="Label efficiency and robustness across budgets" width="850">
-</p>
-
-在增强对齐的公平对照下，纯监督锚点与 COTTON-DETR 的唯一差异是
-COTTON-DETR 使用 3,374 张无标注图。下表均为 523 张测试图像上的
-3 种子均值 ± 标准差。
-
-| 方法 | 标注图像 | mAP ↑ | AP50 ↑ | mPC / rPC ↑ | 残次 F1 ↑ | 宏观 F1 ↑ |
-|---|---:|---:|---:|---:|---:|---:|
-| 纯监督 | 152 | 0.534±0.008 | 0.748±0.009 | 0.422±0.006 / 0.790±0.004 | 0.574±0.027 | 0.738±0.010 |
-| COTTON-DETR | 152 | **0.578±0.005** | **0.789±0.006** | **0.476±0.008 / 0.824±0.008** | **0.600±0.035** | **0.752±0.009** |
-| Δ | 152 | **+0.043** | +0.041 | +0.054 / +0.035 | +0.026 | +0.014 |
-| 纯监督 | 304 | 0.575±0.004 | **0.795±0.003** | 0.456±0.005 / 0.792±0.005 | **0.626±0.015** | **0.775±0.010** |
-| COTTON-DETR | 304 | **0.585±0.007** | 0.791±0.007 | **0.495±0.005 / 0.846±0.004** | 0.611±0.013 | 0.759±0.006 |
-| Δ | 304 | +0.010 | -0.004 | +0.039 / +0.053 | -0.015 | -0.016 |
-| 纯监督 | 608 | 0.592±0.009 | 0.804±0.013 | 0.494±0.004 / 0.835±0.015 | **0.618±0.005** | **0.792±0.010** |
-| COTTON-DETR | 608 | **0.604±0.005** | **0.812±0.003** | **0.517±0.003 / 0.856±0.005** | 0.606±0.013 | 0.766±0.004 |
-| Δ | 608 | **+0.012** | +0.009 | +0.023 / +0.021 | -0.012 | -0.026 |
-
-这个结论是有边界的：无标注数据主要提升 mAP 和鲁棒性；类别层面的长尾
-改善主要来自冷启动选样与验证器门控。
-
-## 鲁棒性
-
-<p align="center">
-  <img src="docs/assets/figure_4_robustness.png" alt="Corruption robustness" width="850">
-</p>
-
-大的鲁棒性差距主要来自骨干。608 张标注图像设置下，DINOv3 架构检测器在
-ImageNet-C 风格腐蚀下保留约 85% 的 clean 性能，而 CNN 基线约为 51%。
-在同一 DINOv3 架构内部，半监督贡献较小但稳定：各预算 rPC 额外提升
-约 +0.02 到 +0.05。
-
-## 验证器为什么有效
-
-<p align="center">
-  <img src="docs/assets/figure_5_verifier_basis.png" alt="DINOv3 verifier feature geometry" width="850">
-</p>
-
-验证器之所以轻量，是因为冻结 DINOv3 特征空间已经能较好地区分四类棉铃
-状态。消融中，仅检测器分数筛选伪标签时 mAP、残次 F1、宏观 F1 分别为
-0.592、0.530、0.764；加入 DINOv3 验证器后提升到 0.605、0.622、0.790。
-
-## 定性结果
-
-<p align="center">
-  <img src="docs/assets/figure_6_qualitative.jpg" alt="Qualitative detection comparison" width="850">
-</p>
-
-在含稀缺类的难图上，COTTON-DETR 召回了纯监督锚点容易漏掉的残次铃和
-部分开裂铃。该图对应主结果中的 608 张标注图像高预算设置。
-
-## 语义编码
-
-<p align="center">
-  <img src="docs/assets/figure_9_semantic.jpg" alt="Post-detection semantic encoding examples" width="850">
-</p>
-
-在四类检测之外，COTTON-DETR 复用冻结 DINOv3 ROI 特征预测开裂状态、开裂
-比例、损伤亚型和损伤严重程度。该模块应被理解为结构化农艺线索，而不是
-替代专家病理诊断。
-
-用于生成兼容 ROI 级语义标签的提示词已开源为
-[中文](prompts/semantic_roi_labeling_zh.md) 和
-[英文](prompts/semantic_roi_labeling_en.md) 两个模板。
-
-语义编码模块的训练和导出入口位于 `tools/semantic/`：
+### 2. 验证器校准
 
 ```bash
-python tools/semantic/train_semantic_head.py \
-  --config configs/cotton_detr/semantic_sidecar_template.yaml
-
-python tools/semantic/export_semantics.py \
-  --config configs/cotton_detr/semantic_sidecar_template.yaml \
-  --detections outputs/cotton_detr_ssod/test_detections.json \
-  --coco-images data/annotations/test.json \
-  --image-dir data/test/images \
-  --output outputs/cotton_detr_ssod/test_detections_with_semantics.json
+python tools/verifier/train_linear_verifier.py \
+  --train-coco data/annotations/labeled_train.json \
+  --train-image-dir data/labeled/images \
+  --val-coco data/annotations/val.json \
+  --val-image-dir data/val/images \
+  --model-dir weights/pretrained/dinov3_vits16 \
+  --target-precision 0.85 \
+  --output-dir outputs/verifier
 ```
 
-## 仓库结构
-
-```text
-configs/cotton_detr/                       脱敏后的公开 SSOD 模板
-engine/                                  模型、损失、求解器、验证器与 SSOD 代码
-engine/data/                             数据加载、变换、评估器与 SSOD 增强代码
-selection/                               可复用冷启动选样算法
-tools/selection/                         DINOv3 特征提取与选样命令行工具
-tools/verifier/                          DINOv3 验证器头训练与阈值标定
-tools/evaluation/                        腐蚀鲁棒性 mPC/rPC 汇总工具
-semantic/                                语义编码模块库
-tools/semantic/                          语义编码训练/导出工具
-tools/evaluate_ssod_teacher.py           teacher EMA 评估入口
-scripts/check_repro_package.py           数据/权重/config 预检脚本
-docs/assets/                             README 使用的 web 版论文图
-prompts/                                 ROI 语义标注开源提示词
-REPRODUCIBILITY.md                       复现实验协议与报告清单
-third_party/licenses/                    上游许可证副本
-```
-
-## 你需要自行提供
-
-- COCO 格式标注训练集。
-- COCO 格式无标注图像记录；无标注记录可以没有 boxes。
-- COCO 格式验证集标注。
-- 用于冷启动选样的候选训练图像池。
-- 稀缺类尾部扩展所需的覆盖头部标注，可选。
-- 符合上游许可证的 DEIM/DINOv3 骨干权重。
-- 冻结 DINOv3 验证器权重：
-  - `weights/pretrained/dinov3_vits16/`
-  - `weights/pretrained/verifier_head.pt`
-  - `weights/pretrained/verifier_head_4cls.pt`
-
-公开模板给出论文 608 图设置中的验证器阈值和类别损失权重。迁移到你的数据集时，需要调整
-`num_classes`、`accept_threshold`、`class_loss_scale` 和
-`class_balanced_sampling`。
-
-## 快速开始
+### 3. 半监督训练
 
 ```bash
-pip install -r requirements.txt
-python scripts/check_repro_package.py \
-  --config configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
-
 bash train_guarded.sh \
   -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
   -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
@@ -223,7 +209,7 @@ bash train_guarded.sh \
   --use-amp
 ```
 
-评估训练后的 SSOD checkpoint：
+### 4. Teacher EMA 评测
 
 ```bash
 python tools/evaluate_ssod_teacher.py \
@@ -233,22 +219,42 @@ python tools/evaluate_ssod_teacher.py \
   -d cuda
 ```
 
-严格环境、种子计划、数据布局和结果归档清单见
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
+### 5. 可选语义组件
 
-## 许可证与声明
+```bash
+python tools/semantic/validate_semantic_labels.py \
+  data/semantic/semantic_labels_train.jsonl \
+  --fail-on-error
 
-我们自己的 COTTON-DETR 新增部分和发布材料按 [CC BY-NC
-4.0](LICENSE) 发布。允许非商业使用，但必须署名；商业使用需要事先获得
-COTTON-DETR 作者的书面许可。第三方派生部分保留上游许可证：DEIM、
-D-FINE、RT-DETR 为 Apache-2.0；DINOv3 代码和模型材料遵循 Meta DINOv3
-License。许可证副本位于 [third_party/licenses/](third_party/licenses/)。
+python tools/semantic/train_semantic_head.py \
+  --config configs/cotton_detr/semantic_sidecar_template.yaml
+```
 
-本仓库不重新分发数据集、预训练权重、验证器头、检查点或原始实验输出。
-用户需要自行确保外部模型权重和数据集的使用符合对应许可证。
+开源提示词与 JSONL 模式见 [tools/semantic](tools/semantic/)。完整种子方案、权重布局、评测口径与结果归档清单见 [REPRODUCIBILITY.md](REPRODUCIBILITY.md)。
+
+## 开源范围
+
+本仓库包含可执行的方法链路、脱敏配置、提示词模板与论文图。以下内容不公开：
+
+- 私有棉花数据集与标注；
+- 预训练模型文件与验证器头；
+- 检查点、日志、特征缓存和原始实验结果；
+- 私有论文草稿、审稿材料与 VLM 响应。
+
+生成的选样结果、语义标签与评测产物已被 Git 忽略，不应提交到公开仓库。
 
 ## 引用
 
-使用本仓库必须引用我们的文章。正式引用信息将在论文发表后更新。
+学术使用本仓库必须引用我们的文章。文章链接与完整引用信息将在论文发表后补充。
 
 - 文章：[COTTON-DETR]()
+
+## 许可与第三方声明
+
+COTTON-DETR 原创增量代码与发布材料采用 [CC BY-NC 4.0](LICENSE) 许可。非商业使用须署名；商业使用需事先获得 COTTON-DETR 作者书面许可。
+
+第三方组件继续遵循各自上游许可证。DEIM、D-FINE 与 RT-DETR 相关材料采用 Apache-2.0；DINOv3 代码与模型材料受 Meta DINOv3 License 约束。具体边界见 [NOTICE.md](NOTICE.md)、[OPEN_SOURCE_AUDIT.md](OPEN_SOURCE_AUDIT.md) 与 [third_party/licenses](third_party/licenses/)。
+
+## 致谢
+
+COTTON-DETR 基于 DEIM/DEIMv2、D-FINE、RT-DETR 与 DINOv3 构建。感谢这些项目的作者公开研究代码与模型生态。
