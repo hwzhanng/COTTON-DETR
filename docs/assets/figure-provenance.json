@@ -1,0 +1,72 @@
+{
+  "source": "DINOv3-Driven Label-Efficient In-Field Cotton Boll State Detection: From Cold-Start Selection to Semantic Interpretation",
+  "sha256": "ff8938b224acae04d6d9bc3435d3e87017855b7191f428a15d107610ac72a789",
+  "figures": [
+    {
+      "file": "cotton_detr_pipeline.png",
+      "figure": 1,
+      "page": 3,
+      "crop_pdf_points": [
+        37,
+        397,
+        560,
+        670
+      ]
+    },
+    {
+      "file": "cotton_detr_architecture.png",
+      "figure": 7,
+      "page": 9,
+      "crop_pdf_points": [
+        37,
+        81,
+        560,
+        375
+      ]
+    },
+    {
+      "file": "cotton_detr_label_efficiency.png",
+      "figure": 8,
+      "page": 13,
+      "crop_pdf_points": [
+        37,
+        81,
+        560,
+        241
+      ]
+    },
+    {
+      "file": "cotton_detr_crossdomain.png",
+      "figure": 12,
+      "page": 16,
+      "crop_pdf_points": [
+        37,
+        500,
+        560,
+        711
+      ]
+    },
+    {
+      "file": "cotton_detr_robustness.png",
+      "figure": 10,
+      "page": 15,
+      "crop_pdf_points": [
+        37,
+        232,
+        560,
+        408
+      ]
+    },
+    {
+      "file": "cotton_detr_semantic.png",
+      "figure": 13,
+      "page": 18,
+      "crop_pdf_points": [
+        37,
+        103,
+        560,
+        308
+      ]
+    }
+  ]
+}

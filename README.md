@@ -2,259 +2,179 @@
 
 # COTTON-DETR
 
-### Label-efficient in-field cotton boll-state detection
+### DINOv3-Driven Label-Efficient In-Field Cotton Boll State Detection: From Cold-Start Selection to Semantic Interpretation
 
-**Detector-free cold-start selection and reliability-controlled semi-supervised learning driven by a shared DINOv3 lineage**
+**One self-supervised model family for image selection, pseudo-label verification, detection, and ROI semantic interpretation.**
 
-[English](README.md) | [中文](README.zh-CN.md) | [Reproducibility](REPRODUCIBILITY.md) | [License](LICENSE)
+[English](README.md) · [中文](README.zh-CN.md) · [Interactive demo](https://huggingface.co/spaces/DEFF819/COTTON-DETR) · [Reproducibility](REPRODUCIBILITY.md)
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey.svg)](LICENSE)
 
 </div>
 
-<p align="center">
-  <img src="docs/assets/cotton_detr_pipeline.png" alt="COTTON-DETR end-to-end pipeline" width="100%">
-</p>
+![DINOv3-driven cotton boll monitoring pipeline](docs/assets/cotton_detr_pipeline.png)
+
+*Manuscript Figure 1: data selection, independently verified teacher–student learning, and detection with ROI semantic interpretation.*
 
 ## Overview
 
-Precise annotation of field imagery is expensive, while agronomic targets are often dense, fine-grained, and strongly long-tailed. COTTON-DETR is a label-efficient detection pipeline that reuses one DINOv3 self-supervised model lineage across four roles: detector-free image selection, pseudo-label verification, a distilled DETR backbone, and post-detection ROI semantic encoding.
+COTTON-DETR connects **data construction, training reliability, object detection, and output interpretation** for cotton boll monitoring under limited annotations, long-tailed class distributions, and changing field conditions. It reuses the DINOv3 model family across four roles, with different model sizes and prediction heads for each stage.
 
-With 608 labeled images (15% of a 3,982-image field pool), COTTON-DETR reaches **0.604 mAP** and **0.856 rPC** on the in-domain test set. Its main semi-supervised benefit appears under distribution shift: relative to the same-architecture supervised model, unlabeled data improves cross-domain mAP by **+0.086** while retaining **91%** of in-domain accuracy. The release is intentionally scoped to code, sanitized configurations, prompts, and reproducibility utilities; private data, weights, checkpoints, and experiment archives are not included.
+Two selection rounds annotate **608 of 3,982 training images**, leaving **3,374 unlabeled images** for semi-supervised training. The clearest performance benefit is **cross-domain generalization**: combined external-domain mAP increases from **0.462 to 0.548** over the same-architecture supervised baseline. Independent verification mitigates rare-class degradation during self-training. After detection, frozen ROI features support predictions of opening and damage attributes.
 
-## Highlights
+The [Hugging Face demo](https://huggingface.co/spaces/DEFF819/COTTON-DETR) provides **20 precomputed examples**, interactive boxes and semantic attributes, English/Chinese switching, and exports. It currently **does not run inference on new uploads**. Curated examples are qualitative illustrations, not estimates of full-test-set performance.
 
-- **Detector-free cold start.** Frozen DINOv3 ViT-B/16 features select a distribution-covering annotation head before any task detector exists, then expand coverage toward the rare defective class.
-- **Reliability-controlled SSOD.** An independent frozen DINOv3 verifier reclassifies and filters teacher boxes. Pseudo-label class identity is determined by the verifier, while confidence weighting remains tied to teacher evidence.
-- **Label efficiency with bounded claims.** Three-seed experiments show the largest in-domain mAP gain at 152 labels (+0.043); gains narrow at larger budgets, while corruption robustness remains positive at all budgets.
-- **Cross-domain generalization.** At 608 labels, COTTON-DETR improves combined external-domain mAP from 0.462 to 0.548 over the same-architecture supervised baseline.
-- **Semantic output beyond boxes.** A frozen DINOv3 ROI encoder predicts opening state and percentage, damage subtype, and severity as structured agronomic cues.
+## Four roles of DINOv3
 
-## Method
-
-<p align="center">
-  <img src="docs/assets/cotton_detr_architecture.png" alt="COTTON-DETR reliability-controlled semi-supervised architecture" width="100%">
-</p>
-
-COTTON-DETR follows a teacher-student DETR design. The EMA teacher proposes candidate boxes from weakly augmented unlabeled images. A frozen DINOv3 ViT-S/16 verifier independently checks ROI class identity and rejects unreliable candidates. The student is optimized with verified pseudo-labels on strongly augmented unlabeled images and ground-truth boxes on labeled images.
-
-The method separates two decisions that detector-only self-training usually couples:
-
-1. **What class is this ROI?** The DINOv3 verifier supplies the class decision.
-2. **How much should it contribute?** The teacher score supplies the loss weight.
-
-This decoupling targets confirmation bias in rare classes without treating the verifier as a second trainable detector.
-
-## Results
-
-### Label efficiency and corruption robustness
-
-<p align="center">
-  <img src="docs/assets/cotton_detr_label_efficiency.png" alt="Three-seed label-efficiency and robustness results" width="100%">
-</p>
-
-The controlled comparison uses the same DEIMv2-DINOv3-S architecture, labeled subsets, augmentations, and evaluation split. The semi-supervised rows additionally use 3,374 unlabeled images. Values are three-seed mean ± standard deviation on the 523-image test set.
-
-`mPC` is mean mAP over corruption types and severities; `rPC` is `mPC / clean mAP`.
-
-| Method | Labels | mAP ↑ | mPC / rPC ↑ |
-|---|---:|---:|---:|
-| Supervised | 152 | 0.534 ± 0.008 | 0.422 ± 0.006 / 0.790 ± 0.004 |
-| **COTTON-DETR** | **152** | **0.578 ± 0.005** | **0.476 ± 0.008 / 0.824 ± 0.008** |
-| Supervised | 304 | 0.575 ± 0.004 | 0.456 ± 0.005 / 0.792 ± 0.005 |
-| **COTTON-DETR** | **304** | **0.585 ± 0.007** | **0.495 ± 0.005 / 0.846 ± 0.004** |
-| Supervised | 608 | 0.592 ± 0.009 | 0.494 ± 0.004 / 0.835 ± 0.015 |
-| **COTTON-DETR** | **608** | **0.604 ± 0.005** | **0.517 ± 0.003 / 0.856 ± 0.005** |
-
-Using the reported best-test checkpoints for the matched-budget generic SSOD comparison, COTTON-DETR reaches 0.578/0.604 mAP at 152/608 labels, compared with 0.496/0.541 for Soft Teacher and 0.497/0.547 for Semi-DETR. These checkpoint-level comparisons show that direct transfer of generic SSOD recipes is not sufficient for this long-tailed field setting.
-
-### Component evidence
-
-| Component | Three-seed evidence at 608 labels | Interpretation |
+| Stage | Representation | Role |
 |---|---|---|
-| DINOv3 verifier | Defective F1: 0.561 ± 0.043 → **0.606 ± 0.013** | Repairs and stabilizes the rare class; mAP changes only from 0.599 to 0.604. |
-| DINOv3 cold-start selection | Defective F1: 0.591 ± 0.055 → **0.618 ± 0.005** | Primarily improves rare-class coverage and variance rather than mean mAP. |
-| Unlabeled training data | rPC gains of +0.035, +0.053, and +0.021 at 152/304/608 labels | Adds a smaller but consistent robustness gain within the same architecture. |
+| **Select** | Frozen ViT-B/16 global features | Select 500 coverage images without a task detector, then add 108 images through rare-class supplementation guided by first-round human labels. |
+| **Verify** | Frozen ViT-S/16 ROI features | Independently classify teacher proposals and filter pseudo-labels during semi-supervised training. |
+| **Detect** | DINOv3-distilled ViT-Tiny | DEIMv2-DINOv3-S predicts boxes and four detection classes; the detector has 9.69M parameters. |
+| **Interpret** | Frozen ViT-S/16 ROI features | A balanced MLP predicts opening attributes; training-feature prototypes predict damage subtype and severity. |
 
-### Generalization to unseen domains
+Detection classes are **Defected, Flower, Fully opened, and Partially opened**. Flower denotes the floral organ. **Closed** is a semantic opening state, not a fifth detection class. The four stages do not share one identical network or checkpoint.
 
-<p align="center">
-  <img src="docs/assets/cotton_detr_crossdomain.png" alt="Cross-domain retention and semi-supervised gains" width="100%">
-</p>
+### Independent verification during training
 
-On two unseen field domains, COTTON-DETR achieves **0.548 ± 0.005 mAP** and **0.908 ± 0.016 rExt**, compared with **0.462 ± 0.034 mAP** and **0.780 ± 0.061 rExt** for the same-architecture supervised baseline, where `rExt = external mAP / in-domain mAP`. The +0.086 cross-domain mAP gain is about seven times its +0.012 in-domain gain at the 608-label budget. The external evaluation is limited to 180 images and 510 boxes; broader cross-location and cross-crop validation remains open.
+![Detector architecture and frozen verification branch](docs/assets/cotton_detr_architecture.png)
 
-### Corruption robustness
+*Manuscript Figure 7. Upper panel: detector. Lower panel: frozen training-time verifier.*
 
-<p align="center">
-  <img src="docs/assets/cotton_detr_robustness.png" alt="Accuracy and robustness under synthetic corruptions" width="100%">
-</p>
+The EMA teacher proposes boxes from weakly augmented unlabeled images. Frozen DINOv3 ROI features and calibrated classification heads determine class identity and acceptance independently of teacher–student updates. The student learns from manual annotations and accepted pseudo-labels on strongly augmented images.
 
-The cross-architecture trend is primarily associated with the DINOv3-distilled detector backbone. Within the same architecture, semi-supervised learning contributes a smaller positive increment. Synthetic ImageNet-C-style corruptions are used as a controlled proxy for imaging degradation and should not be interpreted as a substitute for real domain shift.
+**Verifier posteriors determine the accepted class; teacher confidence and class weights determine its loss contribution.** The pseudo-label verifier is a training component. At inference, the detector produces boxes and classes, followed by ROI semantic prediction.
 
-### ROI semantic encoding
+## Main evidence
 
-<p align="center">
-  <img src="docs/assets/cotton_detr_semantic.png" alt="COTTON-DETR semantic encoding examples" width="100%">
-</p>
+Detection comparisons below report **mean ± standard deviation over three seeds**, unless stated otherwise. COCO mAP is AP@[0.50:0.05:0.95]. These are manuscript results, not scores calculated from the demo.
 
-The optional semantic component converts detected ROIs into opening state, opening percentage, damage subtype, and severity. Prototype matching raises damage-severity consistency F1 from 0.448 to **0.611** when measured against ROI-level VLM labels. These outputs are structured visual cues, not expert pathology diagnoses or human-verified ground truth.
+### Cross-domain generalization
 
-## Repository Structure
+![External-domain retention and gains across annotation budgets](docs/assets/cotton_detr_crossdomain.png)
+
+*Figure 12. Asterisks identify single-run reference models; the matched-architecture comparison uses three seeds.*
+
+| Model, 608 labeled images | OUT100 mAP | GH80 mAP | Combined mAP | Retention ratio |
+|---|---:|---:|---:|---:|
+| Same-architecture supervised baseline | 0.477 ± 0.026 | 0.397 ± 0.046 | 0.462 ± 0.034 | 0.780 ± 0.061 |
+| **COTTON-DETR** | **0.570 ± 0.008** | **0.472 ± 0.027** | **0.548 ± 0.005** | **0.908 ± 0.016** |
+
+*Table 4. Retention = external mAP / in-domain mAP.*
+
+The external evaluation covers **180 images and 510 boxes**: OUT100 has 100 outdoor images, and GH80 has 80 greenhouse images with no flowers. The **+0.086 cross-domain gain** is about seven times the **+0.012 in-domain gain** at the same budget. This evaluates transfer across acquisition conditions within the cotton task; cross-crop generalization is not established.
+
+### Rare-class supervision and protection
+
+| Comparison at 608 labels | Defective-boll F1 | Interpretation |
+|---|---:|---|
+| Self-training without → with the verifier | 0.561 ± 0.043 → **0.606 ± 0.013** | Mitigates rare-class degradation and reduces training-seed variability. |
+| Random selection → DINOv3 cold-start selection | 0.591 ± 0.055 → **0.618 ± 0.005** | Supervised sampling ablation: three random subsets versus three training seeds on one fixed DINOv3-selected subset. |
+
+*Table 3. These are separate ablations, not successive gains from one experiment.*
+
+The verifier improves F1 relative to unverified self-training, but **does not exceed the supervised F1 of 0.618** at this budget. The sampling rows have different sources of variability and should not be interpreted as a matched repeated-subset variance test.
+
+### Annotation budgets and corruption robustness
+
+![Three-seed label-efficiency and robustness comparison](docs/assets/cotton_detr_label_efficiency.png)
+
+*Figure 8. In-domain gains concentrate at the lowest budget; corruption robustness improves at all three budgets.*
+
+| Labels | Supervised mAP | COTTON-DETR mAP | Reported ΔmAP | Supervised rPC | COTTON-DETR rPC |
+|---:|---:|---:|---:|---:|---:|
+| 152 | 0.534 ± 0.008 | 0.578 ± 0.005 | +0.043 | 0.790 ± 0.004 | 0.824 ± 0.008 |
+| 304 | 0.575 ± 0.004 | 0.585 ± 0.007 | +0.010 | 0.792 ± 0.005 | 0.846 ± 0.004 |
+| 608 | 0.592 ± 0.009 | 0.604 ± 0.005 | +0.012 | 0.835 ± 0.015 | 0.856 ± 0.005 |
+
+*Table 2. Deltas use unrounded results. Architecture, annotated subsets, and augmentation are matched; COTTON-DETR additionally uses 3,374 unlabeled images. The test set contains 523 images.*
+
+`mPC` averages mAP over 15 corruption types × 5 severity levels; `rPC = mPC / clean mAP`. Higher mAP does not imply higher F1 for every class. The manuscript's paired tests use three seeds and are not adjusted for multiple comparisons.
+
+<details>
+<summary>Corruption comparison across architectures</summary>
+
+![Representative single-run corruption comparison](docs/assets/cotton_detr_robustness.png)
+
+*Figure 10 reports representative single runs, not the three-seed means in Table 2.* DINOv3-based detectors retain high performance under synthetic corruption; the matched-architecture comparison isolates the smaller additional contribution of semi-supervised learning. Synthetic corruption is a controlled degradation benchmark, not a substitute for real domain shifts.
+
+</details>
+
+## ROI semantic interpretation
+
+The semantic component turns each ROI into **opening state, opening percentage, damage subtype, severity, and a structured description**:
+
+1. Frozen DINOv3 ViT-S/16 encodes the crop.
+2. A class-balanced MLP predicts opening state and percentage. State-dependent clipping uses 0% for flowers, 0–15% for closed, 15–65% for partially opened, and 65–100% for fully opened bolls.
+3. Damage presence follows the detection class. For defective bolls, subtype and severity use nearest positive training-feature prototypes.
+4. Text is assembled deterministically from attributes and templates. **Gemini 3 Flash provides offline supervision; inference does not call a VLM or generate free-form text.**
+
+Only the **1,203 annotated ROIs from the 608 training images** train the semantic heads and construct the prototypes. Opening percentage estimates visible exposed lint per ROI, not the proportion of open bolls in an image or field.
+
+### Attribute agreement and evaluation scope
+
+Table 5 evaluates **all 1,026 ground-truth ROIs in 523 test images** against Gemini attributes. Ground-truth locations and classes supply the class-based decisions; this measures attributes given known objects, not end-to-end detection.
+
+| Component | Opening-state macro-F1 ↑ | Opening-% MAE ↓ | Severity macro-F1, 4 classes ↑ |
+|---|---:|---:|---:|
+| Deterministic class map | 0.715 | 8.80 | 0.449 |
+| Original multi-head MLP | 0.794 | 4.96 | 0.448 |
+| Fixed opening + damage majority | 0.794 | 4.65 | 0.449 |
+| **Full semantic component** | **0.794** | **4.65** | **0.610** |
+
+MAE is in **percentage points**. The majority-class control holds opening predictions, clipping, and damage-presence decisions fixed. Comparison with the full component isolates the contribution of damage prototypes: severity macro-F1 increases from 0.449 to 0.610 (approximately +0.162 before rounding).
+
+![Opening and damage agreement with Gemini reference labels](docs/assets/cotton_detr_semantic.png)
+
+*Figure 13. Rows are references; columns are predictions. Cells show counts and row proportions.*
+
+- **All test ROIs:** Table 5 severity macro-F1 is **0.610 across four classes**, including 935 undamaged objects.
+- **Defective ROIs only:** Figure 13 uses 91 defective test ROIs for damage panels. Severity macro-F1 is **0.481 across mild, moderate, and severe**; this is a different metric from Table 5.
+- **Correctly detected objects only:** at confidence 0.65, 891 correct-class matches with IoU ≥ 0.5 yield opening/severity macro-F1 of **0.848 / 0.699**. This excludes 450 false positives and 135 false negatives and is not an end-to-end semantic score.
+
+These metrics measure agreement with VLM labels. Independent expert annotation and agronomic calibration remain future work. Damage presence follows a class constraint, and prototype similarity is not a probability or an expert diagnosis.
+
+## Code and reproducibility
 
 ```text
-COTTON-DETR/
-├── configs/cotton_detr/       # Public SSOD and semantic templates
-├── engine/                    # Detector, criterion, solver, and SSOD runtime
-├── selection/                 # Cold-start selection algorithms
-├── semantic/                  # ROI semantic encoding library
-├── tools/selection/           # Feature extraction and selection CLIs
-├── tools/verifier/            # Verifier training and calibration
-├── tools/evaluation/          # Corruption metric utilities
-├── tools/semantic/            # Semantic training, validation, and export
-├── prompts/                   # Open ROI semantic-labeling prompts
-├── scripts/                   # Reproducibility preflight checks
-├── REPRODUCIBILITY.md         # End-to-end rerun protocol
-└── third_party/licenses/      # Upstream license notices
+configs/cotton_detr/     Public SSOD and semantic configurations
+engine/                 Detector and semi-supervised runtime
+selection/              Cold-start selection algorithms
+semantic/               ROI semantic encoding library
+tools/selection/        Feature extraction and selection CLIs
+tools/verifier/         Verifier training and calibration
+tools/semantic/         Semantic training, evaluation, and export
+tools/evaluation/       Corruption evaluation utilities
+prompts/                ROI attribute-labeling prompts
+scripts/                Reproducibility preflight checks
+third_party/licenses/   Upstream license notices
 ```
 
-## Installation
-
-Training is supported on Linux with an NVIDIA GPU. Install the PyTorch build that matches your CUDA driver before the remaining dependencies.
+For training, use Linux with an NVIDIA GPU. Install PyTorch/torchvision for your CUDA environment before the remaining dependencies:
 
 ```bash
 git clone https://github.com/hwzhanng/COTTON-DETR.git
 cd COTTON-DETR
-
 python -m venv .venv
 source .venv/bin/activate
-
-# Example only; select the wheel matching your CUDA environment.
-pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+# Install a compatible torch/torchvision build first.
 pip install -r requirements-repro.txt
-```
-
-## Data and Weights
-
-The default configuration expects COCO-format annotations:
-
-```text
-data/
-├── candidate/images/
-├── labeled/images/
-├── unlabeled/images/
-├── val/images/
-└── annotations/
-    ├── candidate_train.json
-    ├── coverage_head_labeled.json
-    ├── labeled_train.json
-    ├── unlabeled_train.json
-    ├── val.json
-    └── test.json
-```
-
-Users must obtain the DEIMv2-DINOv3 detector initialization and DINOv3 model files under their upstream terms, and train verifier heads from their own labeled data. Run the preflight checker before training:
-
-```bash
 python scripts/check_repro_package.py \
   --config configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml
 ```
 
-Use `--allow-missing` only while preparing the directory structure.
+[REPRODUCIBILITY.md](REPRODUCIBILITY.md) provides selection, verifier calibration, training, EMA-teacher evaluation, data layout, and semantic commands. The manuscript's **global cold-start selection uses ViT-B/16**; **ViT-S/16 is used for verifier/semantic ROIs**. Configure the corresponding backbone for each stage.
 
-## Reproducing the Pipeline
+This Git checkout contains code, configuration templates, prompts, and selected figures. Data and checkpoint files are not bundled here; consult [data notes](data/README.md) and [weight setup](weights/pretrained/README.md). Original DINOv3 weights must be obtained under their upstream access and license terms. The full manuscript PDF, raw VLM responses, and local experiment archives are not included.
 
-### 1. Cold-start selection
+## Manuscript and citation
 
-```bash
-python tools/selection/extract_dinov3_features.py \
-  --image-dir data/candidate/images \
-  --model-dir weights/pretrained/dinov3_vits16 \
-  --output-dir outputs/selection/features
+**DINOv3-Driven Label-Efficient In-Field Cotton Boll State Detection: From Cold-Start Selection to Semantic Interpretation**
 
-python tools/selection/select_cold_start.py \
-  --method cluster_head \
-  --features outputs/selection/features/dinov3_features.npy \
-  --paths outputs/selection/features/dinov3_paths.npy \
-  --candidate-coco data/annotations/candidate_train.json \
-  --exclude-coco data/annotations/val.json \
-  --exclude-coco data/annotations/test.json \
-  --budget 500 \
-  --output-dir outputs/selection/coverage_head
-```
+The public paper URL and complete citation metadata will be added when available. See [figure sources](docs/assets/README.md) for the manuscript figures used in this repository.
 
-After annotating the coverage head, run the `cluster_tail` stage and derive nested 152/304/608 subsets. Exact commands and leakage checks are documented in [REPRODUCIBILITY.md](REPRODUCIBILITY.md#cold-start-selection).
+## License and acknowledgements
 
-### 2. Verifier calibration
+Original COTTON-DETR additions and release materials retain the repository's [CC BY-NC 4.0 license](LICENSE). Non-commercial use requires attribution; commercial use requires prior written permission from the authors.
 
-```bash
-python tools/verifier/train_linear_verifier.py \
-  --train-coco data/annotations/labeled_train.json \
-  --train-image-dir data/labeled/images \
-  --val-coco data/annotations/val.json \
-  --val-image-dir data/val/images \
-  --model-dir weights/pretrained/dinov3_vits16 \
-  --target-precision 0.85 \
-  --output-dir outputs/verifier
-```
-
-### 3. Semi-supervised training
-
-```bash
-bash train_guarded.sh \
-  -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
-  -t weights/pretrained/deimv2_dinov3_s_coco_tuning.pth \
-  -d cuda \
-  --seed 0 \
-  --use-amp
-```
-
-### 4. Teacher-EMA evaluation
-
-```bash
-python tools/evaluate_ssod_teacher.py \
-  -c configs/cotton_detr/cotton_detr_dinov3_tiny_ssod.yml \
-  --checkpoint outputs/cotton_detr_ssod/best_teacher_ema.pth \
-  --output-dir outputs/cotton_detr_ssod/eval \
-  -d cuda
-```
-
-### 5. Optional semantic sidecar
-
-```bash
-python tools/semantic/validate_semantic_labels.py \
-  data/semantic/semantic_labels_train.jsonl \
-  --fail-on-error
-
-python tools/semantic/train_semantic_head.py \
-  --config configs/cotton_detr/semantic_sidecar_template.yaml
-```
-
-Open prompt templates and the JSONL schema are provided in [tools/semantic](tools/semantic/). The full seed plan, weight layout, evaluation protocol, and reporting checklist are in [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
-
-## Release Scope
-
-This repository includes the executable method path, sanitized configs, prompt templates, and paper figures. It does **not** redistribute:
-
-- private cotton datasets or annotations;
-- pretrained model files or verifier heads;
-- checkpoints, logs, feature caches, or raw experiment outputs;
-- private manuscript drafts, review material, or VLM responses.
-
-Generated selections, semantic labels, and evaluation artifacts are ignored by Git and should remain outside public commits.
-
-## Citation
-
-Academic use of this repository requires citation of our article. The article link and complete citation metadata will be added after publication.
-
-- Article: [COTTON-DETR]()
-
-## License and Third-Party Notices
-
-Original COTTON-DETR additions and release materials are licensed under [CC BY-NC 4.0](LICENSE). Non-commercial use is permitted with attribution; commercial use requires prior written permission from the COTTON-DETR authors.
-
-Third-party components retain their upstream licenses. DEIM, D-FINE, and RT-DETR materials are distributed under Apache-2.0 terms; DINOv3 code and model materials are governed by the Meta DINOv3 License. See [NOTICE.md](NOTICE.md), [OPEN_SOURCE_AUDIT.md](OPEN_SOURCE_AUDIT.md), and [third_party/licenses](third_party/licenses/) for the exact boundaries.
-
-## Acknowledgements
-
-COTTON-DETR builds on DEIM/DEIMv2, D-FINE, RT-DETR, and DINOv3. We thank the authors of these projects for making their research code and model ecosystems available.
+DEIM/DEIMv2, D-FINE, RT-DETR, and DINOv3 retain their upstream terms. See [NOTICE.md](NOTICE.md), [OPEN_SOURCE_AUDIT.md](OPEN_SOURCE_AUDIT.md), and [third-party licenses](third_party/licenses/). We thank their authors for the underlying methods and implementations.
