@@ -10,6 +10,8 @@
 
 [English](README.md) · [中文](README.zh-CN.md) · [在线演示](https://huggingface.co/spaces/DEFF819/COTTON-DETR) · [复现说明](REPRODUCIBILITY.md)
 
+[![Hugging Face Demo](https://img.shields.io/badge/%F0%9F%A4%97_Hugging_Face-Demo-FFD21E)](https://huggingface.co/spaces/DEFF819/COTTON-DETR)
+![Paper: Coming soon](https://img.shields.io/badge/Paper-Coming_soon-lightgrey)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey.svg)](LICENSE)
 
 </div>
